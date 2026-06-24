@@ -54,13 +54,14 @@
 ```bash
 cd ~/raicom_submit/深圳大学-懒得取名字-轮式组/文档与源码/第一部分源码/detect
 conda activate yolo11
-python capture_dataset.py paper --camera 0
+python capture_dataset.py paper --camera 0 --interval 0.5
 ```
 
 采集窗口中：
 
 ```text
-s 保存当前帧
+空格 开始/暂停自动拍照
+s 手动保存当前帧
 q 退出
 ```
 
@@ -69,6 +70,7 @@ q 退出
 ```text
 detect/capture/
 ├── paper/
+│   └── 20260624_153000/
 ├── banana/
 └── tv/
 ```
@@ -78,6 +80,21 @@ detect/capture/
 ```text
 第一部分源码/train/raw_capture/
 ```
+
+也可以先在虚拟机中打包：
+
+```bash
+cd ~/raicom_submit/深圳大学-懒得取名字-轮式组/文档与源码/第一部分源码/detect
+bash pack_capture.sh
+```
+
+默认生成：
+
+```text
+detect/packages/raicom_capture_时间戳.tar.gz
+```
+
+将该压缩包传到 Windows 后解压，再把其中的 `capture/` 内容整理到 `train/raw_capture/`。
 
 ## 2. 本机标注与整理数据集
 

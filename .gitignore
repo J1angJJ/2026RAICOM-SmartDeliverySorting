@@ -71,6 +71,8 @@ capture/
 **/capture/
 raw_capture/
 **/raw_capture/
+packages/
+**/packages/
 runs/
 outputs/
 wandb/
