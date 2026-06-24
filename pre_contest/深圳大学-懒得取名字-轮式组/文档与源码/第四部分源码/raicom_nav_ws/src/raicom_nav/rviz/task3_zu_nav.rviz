@@ -1,20 +1,42 @@
 Panels:
   - Class: rviz/Displays
+    Help Height: 0
     Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Map1
+        - /ZuReference1
+        - /ActualPath1
+      Splitter Ratio: 0.5
+    Tree Height: 620
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.7
+    - Alpha: 0.5
       Cell Size: 0.5
       Class: rviz/Grid
       Color: 160; 160; 160
       Enabled: true
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
       Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
       Plane: XY
       Plane Cell Count: 20
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 0.7
+    - Alpha: 0.8
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
@@ -22,38 +44,7 @@ Visualization Manager:
       Name: Map
       Topic: /map
       Unreliable: false
-      Value: true
-    - Class: rviz/RobotModel
-      Enabled: true
-      Name: RobotModel
-      Robot Description: robot_description
-      TF Prefix: ""
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
-    - Class: rviz/LaserScan
-      Color: 255; 255; 255
-      Enabled: true
-      Name: Scan
-      Size (m): 0.03
-      Style: Points
-      Topic: /scan
-      Unreliable: false
-      Value: true
-    - Class: rviz/Path
-      Color: 25; 255; 40
-      Enabled: true
-      Line Style: Lines
-      Line Width: 0.08
-      Name: ActualPath
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0.04
-      Pose Color: 25; 255; 40
-      Pose Style: None
-      Topic: /zu_actual_path
-      Unreliable: false
+      Use Timestamp: false
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -63,9 +54,38 @@ Visualization Manager:
         zu_reference: true
       Queue Size: 100
       Value: true
-    - Class: rviz/Path
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 40
+      Enabled: true
+      Head Diameter: 0.3
+      Head Length: 0.2
+      Length: 0.3
+      Line Style: Lines
+      Line Width: 0.08
+      Name: ActualPath
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0.04
+      Pose Color: 25; 255; 40
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
+      Topic: /zu_actual_path
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
       Color: 255; 120; 0
       Enabled: true
+      Head Diameter: 0.3
+      Head Length: 0.2
+      Length: 0.3
       Line Style: Lines
       Line Width: 0.03
       Name: GlobalPlan
@@ -75,31 +95,27 @@ Visualization Manager:
         Z: 0.02
       Pose Color: 255; 120; 0
       Pose Style: None
+      Queue Size: 10
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
       Topic: /move_base/GlobalPlanner/plan
       Unreliable: false
       Value: true
-    - Class: rviz/TF
-      Enabled: false
-      Frame Timeout: 15
-      Frames:
-        All Enabled: true
-      Marker Scale: 0.4
-      Name: TF
-      Show Arrows: true
-      Show Axes: true
-      Show Names: false
-      Update Interval: 0
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 28; 28; 28
+    Default Light: true
     Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
     - Class: rviz/Interact
+      Hide Inactive Objects: true
     - Class: rviz/MoveCamera
     - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
     - Class: rviz/SetInitialPose
       Topic: /initialpose
     - Class: rviz/SetGoal
@@ -109,12 +125,21 @@ Visualization Manager:
     Current:
       Angle: 0
       Class: rviz/TopDownOrtho
-      Name: TopDownOrtho
-      Scale: 30
+      Name: Current View
+      Near Clip Distance: 0.01
+      Scale: 40
       Target Frame: map
       X: 0
       Y: 0
     Saved: ~
 Window Geometry:
+  Displays:
+    collapsed: false
   Height: 900
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Views:
+    collapsed: true
   Width: 1200
+  X: 80
+  Y: 40
