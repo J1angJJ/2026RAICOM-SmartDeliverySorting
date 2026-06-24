@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   move_base_msgs
   nav_msgs
   rospy
+  visualization_msgs
 )
 
 catkin_package()
@@ -18,6 +19,6 @@ catkin_install_python(PROGRAMS
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch maps
+install(DIRECTORY launch maps rviz
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

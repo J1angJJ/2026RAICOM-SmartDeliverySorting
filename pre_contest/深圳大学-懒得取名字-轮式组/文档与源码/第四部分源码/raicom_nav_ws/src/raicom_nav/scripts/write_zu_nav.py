@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+import argparse
 import math
 import rospy
 import actionlib
-from geometry_msgs.msg import Point, PoseStamped
+from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Odometry, Path
 from visualization_msgs.msg import Marker
@@ -44,6 +45,19 @@ def make_goal(x, y, yaw):
     goal.target_pose.pose.orientation.z = qz
     goal.target_pose.pose.orientation.w = qw
     return goal
+
+
+def make_initial_pose():
+    pose = PoseWithCovarianceStamped()
+    pose.header.frame_id = "map"
+    pose.pose.pose.position.x = 0.0
+    pose.pose.pose.position.y = 0.0
+    pose.pose.pose.position.z = 0.0
+    pose.pose.pose.orientation.w = 1.0
+    pose.pose.covariance[0] = 0.25
+    pose.pose.covariance[7] = 0.25
+    pose.pose.covariance[35] = 0.0685
+    return pose
 
 
 def build_reference_path():
@@ -109,8 +123,16 @@ def odom_callback(msg):
 def main():
     global actual_path_pub
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start-delay", type=float, default=0.0)
+    parser.add_argument("--set-initial-pose", action="store_true")
+    args, _ = parser.parse_known_args()
+
     rospy.init_node("write_zu_nav")
     client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+    initial_pose_pub = rospy.Publisher(
+        "initialpose", PoseWithCovarianceStamped, queue_size=1
+    )
     reference_path_pub = rospy.Publisher(
         "zu_reference_path", Path, queue_size=1, latch=True
     )
@@ -120,9 +142,21 @@ def main():
     actual_path_pub = rospy.Publisher("zu_actual_path", Path, queue_size=1)
     rospy.Subscriber("odom", Odometry, odom_callback, queue_size=20)
 
+    if args.start_delay > 0:
+        rospy.loginfo("等待 %.1f 秒，让 Gazebo、AMCL、RViz 稳定。", args.start_delay)
+        rospy.sleep(args.start_delay)
+
     rospy.sleep(1.0)
     reference_path_pub.publish(build_reference_path())
     reference_marker_pub.publish(build_reference_marker())
+
+    if args.set_initial_pose:
+        rospy.loginfo("发布初始位姿到 /initialpose。")
+        for _ in range(10):
+            pose = make_initial_pose()
+            pose.header.stamp = rospy.Time.now()
+            initial_pose_pub.publish(pose)
+            rospy.sleep(0.2)
 
     rospy.loginfo("等待 move_base...")
     client.wait_for_server()
