@@ -1,4 +1,4 @@
-# 第四部分：ROS 建图与导航复现步骤
+﻿# 第四部分：ROS 建图与导航复现步骤
 
 本文档用于在 Ubuntu + ROS Noetic 环境中复现第四部分“ROS 建图与导航”任务。第四部分包含三个任务：
 
@@ -38,8 +38,8 @@ source ~/.bashrc
 为避免中文路径影响 ROS 查找包，实际运行目录使用英文路径：
 
 ```bash
-mkdir -p /home/noetic/raicom_nav_work/raicom_nav/{launch,scripts,maps,screenshots}
-cd /home/noetic/raicom_nav_work/raicom_nav
+mkdir -p /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/{launch,scripts,maps,screenshots}
+cd /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav
 ```
 
 创建 `package.xml`：
@@ -72,8 +72,10 @@ gedit package.xml
 加入 ROS 包搜索路径：
 
 ```bash
-export ROS_PACKAGE_PATH=/home/noetic/raicom_nav_work:$ROS_PACKAGE_PATH
-echo "export ROS_PACKAGE_PATH=/home/noetic/raicom_nav_work:\$ROS_PACKAGE_PATH" >> ~/.bashrc
+cd /home/noetic/raicom_nav_work/raicom_nav_ws
+catkin_make
+source devel/setup.bash
+echo "source /home/noetic/raicom_nav_work/raicom_nav_ws/devel/setup.bash" >> ~/.bashrc
 rospack profile
 rospack find raicom_nav
 ```
@@ -81,7 +83,7 @@ rospack find raicom_nav
 正常应输出：
 
 ```text
-/home/noetic/raicom_nav_work/raicom_nav
+/home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav
 ```
 
 ## 3. 创建场地生成脚本
@@ -89,7 +91,7 @@ rospack find raicom_nav
 创建脚本：
 
 ```bash
-gedit /home/noetic/raicom_nav_work/raicom_nav/scripts/spawn_arena.py
+gedit /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/scripts/spawn_arena.py
 ```
 
 该脚本用于在 Gazebo 中生成：
@@ -199,7 +201,7 @@ if __name__ == "__main__":
 赋予执行权限：
 
 ```bash
-chmod +x /home/noetic/raicom_nav_work/raicom_nav/scripts/spawn_arena.py
+chmod +x /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/scripts/spawn_arena.py
 ```
 
 ## 4. 任务一：四面墙环境建图
@@ -207,7 +209,7 @@ chmod +x /home/noetic/raicom_nav_work/raicom_nav/scripts/spawn_arena.py
 创建 launch 文件：
 
 ```bash
-gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task1_mapping.launch
+gedit /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/launch/task1_mapping.launch
 ```
 
 写入：
@@ -244,7 +246,9 @@ gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task1_mapping.launch
 killall gzserver gzclient
 source /opt/ros/noetic/setup.bash
 export TURTLEBOT3_MODEL=burger
-export ROS_PACKAGE_PATH=/home/noetic/raicom_nav_work:$ROS_PACKAGE_PATH
+cd /home/noetic/raicom_nav_work/raicom_nav_ws
+catkin_make
+source devel/setup.bash
 rospack profile
 roslaunch raicom_nav task1_mapping.launch gui:=true
 ```
@@ -262,13 +266,13 @@ roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
 保存任务一地图：
 
 ```bash
-rosrun map_server map_saver -f /home/noetic/raicom_nav_work/raicom_nav/maps/task1_map
+rosrun map_server map_saver -f /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map
 ```
 
 检查生成文件：
 
 ```bash
-ls /home/noetic/raicom_nav_work/raicom_nav/maps/task1_map.*
+ls /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map.*
 ```
 
 应看到：
@@ -291,7 +295,7 @@ task1_map.yaml
 创建 launch 文件：
 
 ```bash
-gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task2_mapping_save.launch
+gedit /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/launch/task2_mapping_save.launch
 ```
 
 写入：
@@ -335,7 +339,9 @@ gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task2_mapping_save.launch
 killall gzserver gzclient
 source /opt/ros/noetic/setup.bash
 export TURTLEBOT3_MODEL=burger
-export ROS_PACKAGE_PATH=/home/noetic/raicom_nav_work:$ROS_PACKAGE_PATH
+cd /home/noetic/raicom_nav_work/raicom_nav_ws
+catkin_make
+source devel/setup.bash
 rospack profile
 roslaunch raicom_nav task2_mapping_save.launch gui:=true save_delay:=60
 ```
@@ -353,7 +359,7 @@ roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
 检查地图：
 
 ```bash
-ls /home/noetic/raicom_nav_work/raicom_nav/maps/task2_cylinder_map.*
+ls /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task2_cylinder_map.*
 ```
 
 应看到：
@@ -386,7 +392,7 @@ task2_cylinder_map.yaml
 ### 6.1 创建导航 launch
 
 ```bash
-gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task3_navigation.launch
+gedit /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/launch/task3_navigation.launch
 ```
 
 写入：
@@ -395,7 +401,7 @@ gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task3_navigation.launch
 <launch>
   <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
   <arg name="gui" default="true"/>
-  <arg name="map_file" default="/home/noetic/raicom_nav_work/raicom_nav/maps/task1_map.yaml"/>
+  <arg name="map_file" default="/home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map.yaml"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="paused" value="false"/>
@@ -429,7 +435,9 @@ gedit /home/noetic/raicom_nav_work/raicom_nav/launch/task3_navigation.launch
 killall gzserver gzclient
 source /opt/ros/noetic/setup.bash
 export TURTLEBOT3_MODEL=burger
-export ROS_PACKAGE_PATH=/home/noetic/raicom_nav_work:$ROS_PACKAGE_PATH
+cd /home/noetic/raicom_nav_work/raicom_nav_ws
+catkin_make
+source devel/setup.bash
 rospack profile
 roslaunch raicom_nav task3_navigation.launch gui:=true
 ```
@@ -439,7 +447,7 @@ roslaunch raicom_nav task3_navigation.launch gui:=true
 ### 6.2 创建写“足”字脚本
 
 ```bash
-gedit /home/noetic/raicom_nav_work/raicom_nav/scripts/write_zu_nav.py
+gedit /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/scripts/write_zu_nav.py
 ```
 
 写入：
@@ -507,7 +515,7 @@ if __name__ == "__main__":
 赋权：
 
 ```bash
-chmod +x /home/noetic/raicom_nav_work/raicom_nav/scripts/write_zu_nav.py
+chmod +x /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/scripts/write_zu_nav.py
 ```
 
 运行写字脚本：
@@ -515,7 +523,9 @@ chmod +x /home/noetic/raicom_nav_work/raicom_nav/scripts/write_zu_nav.py
 ```bash
 source /opt/ros/noetic/setup.bash
 export TURTLEBOT3_MODEL=burger
-export ROS_PACKAGE_PATH=/home/noetic/raicom_nav_work:$ROS_PACKAGE_PATH
+cd /home/noetic/raicom_nav_work/raicom_nav_ws
+catkin_make
+source devel/setup.bash
 rosrun raicom_nav write_zu_nav.py
 ```
 
@@ -570,40 +580,40 @@ rosrun raicom_nav write_zu_nav.py
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务一
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务三/视频
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第四部分源码/源码
+mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第四部分源码/raicom_nav_ws/src
 ```
 
 复制任务一地图：
 
 ```bash
-cp /home/noetic/raicom_nav_work/raicom_nav/maps/task1_map.yaml \
+cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map.yaml \
   ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务一/
 
-cp /home/noetic/raicom_nav_work/raicom_nav/maps/task1_map.pgm \
+cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map.pgm \
   ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务一/
 ```
 
 复制任务二文件：
 
 ```bash
-cp /home/noetic/raicom_nav_work/raicom_nav/launch/task2_mapping_save.launch \
+cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/launch/task2_mapping_save.launch \
   ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
 
-cp /home/noetic/raicom_nav_work/raicom_nav/maps/task2_cylinder_map.yaml \
+cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task2_cylinder_map.yaml \
   ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
 
-cp /home/noetic/raicom_nav_work/raicom_nav/maps/task2_cylinder_map.pgm \
+cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task2_cylinder_map.pgm \
   ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
 
-cp /home/noetic/raicom_nav_work/raicom_nav/screenshots/task2_cylinders.jpg \
+cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/screenshots/task2_cylinders.jpg \
   ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
 ```
 
 复制源码：
 
 ```bash
-cp -a /home/noetic/raicom_nav_work/raicom_nav \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第四部分源码/源码/
+cp -a /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav \
+  ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第四部分源码/raicom_nav_ws/src/
 ```
 
 ## 9. 最终提交结构
@@ -627,11 +637,11 @@ cp -a /home/noetic/raicom_nav_work/raicom_nav \
         ├── README.md
         └── 源码/
             └── raicom_nav/
-                ├── package.xml
-                ├── launch/
-                ├── scripts/
-                ├── maps/
-                └── screenshots/
+                    ├── package.xml
+                    ├── launch/
+                    ├── scripts/
+                    ├── maps/
+                    └── screenshots/
 ```
 
 ## 10. 提交前检查
@@ -646,4 +656,6 @@ cp -a /home/noetic/raicom_nav_work/raicom_nav \
 - 单个视频不超过 5 分钟。
 - 视频没有加速。
 ```
+
+
 

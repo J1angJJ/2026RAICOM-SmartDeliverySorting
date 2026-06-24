@@ -1,4 +1,4 @@
-# 第二部分：ROS Service 包裹类别查询复现步骤
+﻿# 第二部分：ROS Service 包裹类别查询复现步骤
 
 本文档用于在 Ubuntu + ROS 环境中复现第二部分“ROS 程序题”。本任务使用 ROS Service 实现服务端与客户端通信：客户端发送物品名称，服务端返回对应包裹类别。
 
@@ -16,22 +16,22 @@
 本项目第二部分工作空间为：
 
 ```bash
-~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码
+~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws
 ```
 
 ## 3. 创建工作空间和功能包
 
 ```bash
 source /opt/ros/noetic/setup.bash
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/src
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/src
+mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/src
+cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/src
 catkin_create_pkg package_query rospy std_msgs message_generation
 ```
 
 进入功能包：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/src/package_query
+cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/src/package_query
 mkdir -p srv scripts
 ```
 
@@ -247,7 +247,7 @@ chmod +x scripts/package_client.py
 回到工作空间根目录：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码
+cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws
 catkin_make
 ```
 
@@ -260,7 +260,7 @@ source devel/setup.bash
 可选：写入 `.bashrc`：
 
 ```bash
-echo "source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/devel/setup.bash" >> ~/.bashrc
+echo "source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -275,7 +275,7 @@ roscore
 第二个终端：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/devel/setup.bash
+source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
 rosrun package_query package_server.py
 ```
 
@@ -290,7 +290,7 @@ rosrun package_query package_server.py
 第三个终端：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/devel/setup.bash
+source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
 rosservice list
 ```
 
@@ -327,7 +327,7 @@ rosservice call /query_package "item: '空调'"
 服务端保持运行，第三个终端执行：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/devel/setup.bash
+source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
 rosrun package_query package_client.py 卫生纸
 ```
 
@@ -387,15 +387,16 @@ rosrun package_query package_client.py 空调
 └── 文档与源码/
     └── 第二部分源码/
         ├── README.md
-        └── src/
-            └── package_query/
-                ├── CMakeLists.txt
-                ├── package.xml
-                ├── srv/
-                │   └── QueryPackage.srv
-                └── scripts/
-                    ├── package_server.py
-                    └── package_client.py
+        └── package_query_ws/
+            └── src/
+                └── package_query/
+                    ├── CMakeLists.txt
+                    ├── package.xml
+                    ├── srv/
+                    │   └── QueryPackage.srv
+                    └── scripts/
+                        ├── package_server.py
+                        └── package_client.py
 ```
 
 ## 15. 提交前检查
@@ -407,3 +408,5 @@ rosrun package_query package_client.py 空调
 - 客户端中文输出格式清晰。
 - 视频中能看到服务端、客户端和测试结果。
 - 录屏不超过 5 分钟，且没有加速。
+
+

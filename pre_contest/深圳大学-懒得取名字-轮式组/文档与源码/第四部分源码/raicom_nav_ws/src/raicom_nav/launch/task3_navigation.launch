@@ -1,7 +1,7 @@
-<launch>
+﻿<launch>
   <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
   <arg name="gui" default="true"/>
-  <arg name="map_file" default="/home/noetic/raicom_nav_work/raicom_nav/maps/task1_map.yaml"/>
+  <arg name="map_file" default="$(find raicom_nav)/maps/task1_map.yaml"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="paused" value="false"/>
@@ -27,3 +27,4 @@
     <arg name="map_file" value="$(arg map_file)"/>
   </include>
 </launch>
+
