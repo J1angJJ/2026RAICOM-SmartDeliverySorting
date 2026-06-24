@@ -1,0 +1,29 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <arg name="gui" default="true"/>
+  <arg name="map_file" default="/home/noetic/raicom_nav_work/raicom_nav/maps/task1_map.yaml"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
+
+  <node pkg="gazebo_ros"
+        type="spawn_model"
+        name="spawn_turtlebot3"
+        args="-urdf -model turtlebot3_$(arg model) -x 0 -y 0 -z 0 -param robot_description"/>
+
+  <node pkg="raicom_nav"
+        type="spawn_arena.py"
+        name="spawn_arena_walls"
+        args="--mode walls"
+        output="screen"/>
+
+  <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+    <arg name="map_file" value="$(arg map_file)"/>
+  </include>
+</launch>

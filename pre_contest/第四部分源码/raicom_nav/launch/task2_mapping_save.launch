@@ -1,0 +1,29 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <arg name="gui" default="true"/>
+  <arg name="save_delay" default="60"/>
+  <arg name="map_name" default="$(find raicom_nav)/maps/task2_cylinder_map"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro"/>
+
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_turtlebot3"
+        args="-urdf -model turtlebot3_$(arg model) -x 0 -y 0 -z 0 -param robot_description"/>
+
+  <node pkg="raicom_nav" type="spawn_arena.py" name="spawn_arena_cylinders" args="--mode cylinders" output="screen"/>
+
+  <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
+    <arg name="slam_methods" value="gmapping"/>
+  </include>
+
+  <node pkg="map_server" type="map_saver" name="task2_map_saver"
+        args="-f $(arg map_name)"
+        output="screen"
+        launch-prefix="bash -c 'sleep $(arg save_delay); exec $0 $@'"/>
+</launch>

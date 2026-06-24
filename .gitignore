@@ -1,0 +1,113 @@
+# ===== 操作系统文件 =====
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.swp
+*.swo
+*~
+
+# ===== Python =====
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# ===== C/C++ 构建产物 =====
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+
+# ===== ROS 1 catkin 工作空间 =====
+devel/
+install/
+log/
+logs/
+.catkin_tools/
+.ros/
+catkin_generated/
+
+# ===== ROS 2 colcon 工作空间 =====
+.colcon/
+build_isolated/
+devel_isolated/
+install_isolated/
+
+# ===== 运行时数据、录制和诊断 =====
+dataset/
+datasets/
+data/
+bags/
+recordings/
+*.bag
+*.bag.active
+*.db3
+*.mcap
+*.sqlite3
+*.sqlite
+*.active
+*.log
+*.pid
+core
+core.*
+
+# ===== AI 模型 / 权重 =====
+*.pt
+*.pth
+*.onnx
+*.engine
+*.trt
+
+# ===== 图片 / 视频 / 音频 =====
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.mp4
+*.avi
+*.mov
+*.mp3
+*.wav
+
+# ===== 临时文件 =====
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ===== 私有文件（凭据、本地配置等） =====
+/private/
+private_robot_access.yaml
+**/private_robot_access.yaml
+
+# ===== Claude Code =====
+CLAUDE.md
+.claude/
