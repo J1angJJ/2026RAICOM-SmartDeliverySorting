@@ -16,6 +16,16 @@
 
 ## 2. 创建提交目录
 
+本仓库预置了工作空间 A 的自建 `usb_cam` 功能包，可直接同步到虚拟机：
+
+```text
+文档与源码/第三部分源码/任务二/
+└── ws_a/
+    └── src/usb_cam/
+```
+
+`ws_b` 按赛题要求应在虚拟机中现场创建，并通过 `git clone` 下载官方源码包；因此仓库中不预置 `ws_b` 内容。
+
 ```bash
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
@@ -28,7 +38,9 @@ mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第
 ```bash
 source /opt/ros/noetic/setup.bash
 cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
-catkin_create_pkg usb_cam rospy std_msgs
+catkin_init_workspace
+# 如果没有使用仓库预置的 ws_a，则执行：
+# catkin_create_pkg usb_cam rospy std_msgs
 ```
 
 编译工作空间 A：
@@ -55,7 +67,10 @@ usb_cam
 ## 4. 创建工作空间 B 并下载 usb_cam 源码
 
 ```bash
+source /opt/ros/noetic/setup.bash
+mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
 cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
+catkin_init_workspace
 git clone -b develop https://github.com/ros-drivers/usb_cam.git
 ```
 
