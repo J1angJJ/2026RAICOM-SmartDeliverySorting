@@ -40,7 +40,6 @@ mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第
 ```bash
 source /opt/ros/noetic/setup.bash
 cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
-catkin_init_workspace
 # 如果没有使用仓库预置的 ws_a，则执行：
 # catkin_create_pkg usb_cam rospy std_msgs
 ```
@@ -72,7 +71,6 @@ usb_cam
 source /opt/ros/noetic/setup.bash
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
 cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
-catkin_init_workspace
 git clone -b develop https://github.com/ros-drivers/usb_cam.git
 ```
 
