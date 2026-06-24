@@ -67,6 +67,13 @@ datasets/
 data/
 bags/
 recordings/
+capture/
+**/capture/
+raw_capture/
+**/raw_capture/
+runs/
+outputs/
+wandb/
 *.bag
 *.bag.active
 *.db3
