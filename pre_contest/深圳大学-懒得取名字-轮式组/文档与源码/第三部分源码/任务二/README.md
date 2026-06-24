@@ -16,15 +16,17 @@
 
 ## 2. 创建提交目录
 
-本仓库预置了工作空间 A 的自建 `usb_cam` 功能包，可直接同步到虚拟机：
+本仓库预置了工作空间 A 的自建 `usb_cam` 功能包，并保留工作空间 B 的空壳：
 
 ```text
 文档与源码/第三部分源码/任务二/
-└── ws_a/
-    └── src/usb_cam/
+├── ws_a/
+│   └── src/usb_cam/
+└── ws_b/
+    └── src/CMakeLists.txt
 ```
 
-`ws_b` 按赛题要求应在虚拟机中现场创建，并通过 `git clone` 下载官方源码包；因此仓库中不预置 `ws_b` 内容。
+`ws_b` 按赛题要求在虚拟机中通过 `git clone` 下载官方源码包；因此仓库中只保留 workspace 和 `src/CMakeLists.txt`，不预置 `usb_cam` 包源码。
 
 ```bash
 mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
