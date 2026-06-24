@@ -5,11 +5,20 @@
   <description>RAICOM mapping and navigation</description>
   <maintainer email="noetic@example.com">noetic</maintainer>
   <license>MIT</license>
-  <exec_depend>rospy</exec_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>actionlib</depend>
+  <depend>gazebo_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>move_base_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rospy</depend>
+
   <exec_depend>gazebo_ros</exec_depend>
-  <exec_depend>gazebo_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>move_base_msgs</exec_depend>
-  <exec_depend>actionlib</exec_depend>
+  <exec_depend>map_server</exec_depend>
+  <exec_depend>turtlebot3_description</exec_depend>
+  <exec_depend>turtlebot3_navigation</exec_depend>
+  <exec_depend>turtlebot3_slam</exec_depend>
+  <exec_depend>xacro</exec_depend>
 </package>
