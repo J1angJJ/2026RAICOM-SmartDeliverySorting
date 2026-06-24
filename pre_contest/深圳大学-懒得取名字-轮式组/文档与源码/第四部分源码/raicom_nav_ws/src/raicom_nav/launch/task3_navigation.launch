@@ -5,6 +5,7 @@
   <arg name="rviz" default="true"/>
   <arg name="auto_start" default="true"/>
   <arg name="start_delay" default="20"/>
+  <arg name="rviz_config_tmp" default="/tmp/raicom_task3_zu_nav.rviz"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="paused" value="false"/>
@@ -34,7 +35,8 @@
   <node pkg="rviz"
         type="rviz"
         name="rviz"
-        args="-d $(find raicom_nav)/rviz/task3_zu_nav.rviz"
+        args="-d $(arg rviz_config_tmp)"
+        launch-prefix="bash -c 'cp $(find raicom_nav)/rviz/task3_zu_nav.rviz $(arg rviz_config_tmp); exec $0 $@'"
         if="$(arg rviz)"/>
 
   <node pkg="raicom_nav"
