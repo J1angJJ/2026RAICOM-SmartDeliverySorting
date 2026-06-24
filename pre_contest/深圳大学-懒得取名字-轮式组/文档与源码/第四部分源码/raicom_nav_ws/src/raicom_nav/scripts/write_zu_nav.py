@@ -10,16 +10,30 @@ from visualization_msgs.msg import Marker
 
 
 POINTS = [
-    (-0.65,  1.15, 0.0),
-    ( 0.65,  1.15, 0.0),
-    ( 0.65,  0.60, -math.pi),
-    (-0.65,  0.60, -math.pi),
-    (-0.65,  1.15, math.pi / 2),
-    ( 0.00,  1.15, -math.pi / 2),
-    ( 0.00,  0.00, -math.pi / 2),
-    (-0.60, -1.10, -2.4),
-    ( 0.00,  0.00, 0.0),
-    ( 0.70, -1.10, -0.6),
+    (-0.55,  1.20, 0.0),
+    ( 0.55,  1.20, 0.0),
+    ( 0.55,  0.75, -math.pi),
+    (-0.55,  0.75, -math.pi),
+    (-0.55,  1.20, math.pi / 2),
+    ( 0.00,  0.95, -math.pi / 2),
+    ( 0.00,  0.35, -math.pi / 2),
+    (-0.65,  0.35, 0.0),
+    ( 0.65,  0.35, 0.0),
+    ( 0.00,  0.35, -math.pi / 2),
+    ( 0.00, -0.55, -math.pi / 2),
+    (-0.55, -1.15, -2.35),
+    ( 0.00, -0.55, -0.65),
+    ( 0.80, -1.15, -0.45),
+]
+
+
+STROKES = [
+    [(-0.55, 1.20), (0.55, 1.20), (0.55, 0.75), (-0.55, 0.75), (-0.55, 1.20)],
+    [(0.00, 0.95), (0.00, 0.35)],
+    [(-0.65, 0.35), (0.65, 0.35)],
+    [(0.00, 0.35), (0.00, -0.55)],
+    [(0.00, -0.55), (-0.55, -1.15)],
+    [(0.00, -0.55), (0.80, -1.15)],
 ]
 
 
@@ -85,7 +99,7 @@ def build_reference_marker():
     marker.header.stamp = rospy.Time.now()
     marker.ns = "zu_reference"
     marker.id = 1
-    marker.type = Marker.LINE_STRIP
+    marker.type = Marker.LINE_LIST
     marker.action = Marker.ADD
     marker.scale.x = 0.06
     marker.color.r = 1.0
@@ -94,12 +108,14 @@ def build_reference_marker():
     marker.color.a = 1.0
     marker.pose.orientation.w = 1.0
 
-    for x, y, _ in POINTS:
-        point = Point()
-        point.x = x
-        point.y = y
-        point.z = 0.05
-        marker.points.append(point)
+    for stroke in STROKES:
+        for start, end in zip(stroke, stroke[1:]):
+            for x, y in (start, end):
+                point = Point()
+                point.x = x
+                point.y = y
+                point.z = 0.05
+                marker.points.append(point)
 
     return marker
 
