@@ -10,6 +10,7 @@ def train(args: argparse.Namespace) -> None:
     data_yaml = args.data.resolve()
     if not data_yaml.exists():
         raise SystemExit(f"Dataset yaml not found: {data_yaml}")
+    project_dir = args.project.resolve()
 
     model = YOLO(args.model)
     result = model.train(
@@ -18,7 +19,7 @@ def train(args: argparse.Namespace) -> None:
         imgsz=args.imgsz,
         batch=args.batch,
         device=args.device,
-        project=str(args.project),
+        project=str(project_dir),
         name=args.name,
         workers=args.workers,
         patience=args.patience,
@@ -26,7 +27,8 @@ def train(args: argparse.Namespace) -> None:
     )
     print("Training finished.")
     print(result)
-    print(f"Expected best weight: {args.project / args.name / 'weights' / 'best.pt'}")
+    print(f"Save dir: {result.save_dir}")
+    print(f"Expected best weight: {project_dir / args.name / 'weights' / 'best.pt'}")
 
 
 def parse_args() -> argparse.Namespace:
