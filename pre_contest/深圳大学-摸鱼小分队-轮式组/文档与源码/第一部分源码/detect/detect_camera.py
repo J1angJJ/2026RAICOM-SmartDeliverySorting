@@ -140,7 +140,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--window-size", type=int, default=5)
     parser.add_argument("--confirm-count", type=int, default=3)
     parser.add_argument("--print-interval", type=float, default=0.5)
-    parser.add_argument("--overlay", default="深圳大学 懒得取名字 轮式组")
+    parser.add_argument("--overlay", default="深圳大学 摸鱼小分队 轮式组")
     parser.add_argument("--font-size", type=int, default=22)
     return parser.parse_args()
 

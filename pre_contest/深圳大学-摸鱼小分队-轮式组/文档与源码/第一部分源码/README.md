@@ -52,8 +52,8 @@
 虚拟机沿用四足赛预选赛中已经验证过的 YOLO/USB 相机环境。摄像头按 V4L2 打开，使用 YUYV、320x240、30FPS。
 
 ```bash
-cd ~/raicom_submit/深圳大学-懒得取名字-轮式组/文档与源码/第一部分源码/detect
-conda activate yolo11
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
+source /home/noetic/yolo_detect/venv/bin/activate
 python capture_dataset.py paper --camera 0 --interval 0.5
 ```
 
@@ -84,7 +84,7 @@ detect/capture/
 也可以先在虚拟机中打包：
 
 ```bash
-cd ~/raicom_submit/深圳大学-懒得取名字-轮式组/文档与源码/第一部分源码/detect
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
 bash pack_capture.sh
 ```
 
@@ -118,7 +118,7 @@ class_id x_center y_center width height
 `prepare_dataset.py` 会按文件夹名重写 `class_id`，避免手工标错类别编号。
 
 ```powershell
-cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-懒得取名字-轮式组\文档与源码\第一部分源码\train
+cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train
 C:\Users\JJ406\.conda\envs\cv-train\python.exe prepare_dataset.py --raw-dir raw_capture --output-dir data\raicom_goods --clean
 ```
 
@@ -139,7 +139,7 @@ train/data/raicom_goods/
 本机训练环境参考 `R:\ai-context` 中的 `cv-train`：Python 3.11、PyTorch CUDA、Ultralytics YOLO。
 
 ```powershell
-cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-懒得取名字-轮式组\文档与源码\第一部分源码\train
+cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train
 C:\Users\JJ406\.conda\envs\cv-train\python.exe train_yolo.py --data data\raicom_goods\data.yaml --model yolov8n.pt --epochs 100 --imgsz 640 --batch 8 --device 0
 ```
 
@@ -160,8 +160,8 @@ C:\Users\JJ406\.conda\envs\cv-train\python.exe export_for_vm.py --best outputs\t
 ## 4. 虚拟机实时推理
 
 ```bash
-cd ~/raicom_submit/深圳大学-懒得取名字-轮式组/文档与源码/第一部分源码/detect
-conda activate yolo11
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
+source /home/noetic/yolo_detect/venv/bin/activate
 python detect_camera.py --camera 0 --model models/best.pt --conf 0.45 --device cpu
 ```
 
@@ -183,7 +183,7 @@ v4l2-ctl -d /dev/video0 --set-fmt-video=width=320,height=240,pixelformat=YUYV --
 - 相机距离按更严格口径保持 20cm 以上。
 - 视频中展示 USB 相机、识别距离、识别窗口、终端中文输出。
 - 至少识别 3 个包裹类别，每类 2 张，共 6 次识别。
-- 画面左下角显示：`深圳大学 懒得取名字 轮式组`。
+- 画面左下角显示：`深圳大学 摸鱼小分队 轮式组`。
 - 单个视频不超过 5 分钟，不加速。
 
 ## 6. 提交检查
