@@ -75,6 +75,20 @@ def best_class_from_result(result, min_conf: float) -> tuple[str | None, float]:
     return class_name, conf
 
 
+def center_crop_frame(frame, crop_ratio: float):
+    if crop_ratio >= 0.999:
+        return frame, None
+    crop_ratio = max(0.2, min(1.0, crop_ratio))
+    height, width = frame.shape[:2]
+    crop_w = int(width * crop_ratio)
+    crop_h = int(height * crop_ratio)
+    x1 = (width - crop_w) // 2
+    y1 = (height - crop_h) // 2
+    x2 = x1 + crop_w
+    y2 = y1 + crop_h
+    return frame[y1:y2, x1:x2], (x1, y1, x2, y2)
+
+
 def run_classification(args: argparse.Namespace) -> None:
     model_path = args.model.resolve()
     if not model_path.exists():
@@ -107,7 +121,8 @@ def run_classification(args: argparse.Namespace) -> None:
                 print("警告：无法读取摄像头画面。")
                 break
 
-            result = model.predict(frame, imgsz=args.imgsz, device=args.device, verbose=False)[0]
+            input_frame, crop_box = center_crop_frame(frame, args.crop_ratio)
+            result = model.predict(input_frame, imgsz=args.imgsz, device=args.device, verbose=False)[0]
             current_class, current_conf = best_class_from_result(result, args.conf)
             if current_class in CLASS_INFO:
                 history.append(current_class)
@@ -117,6 +132,9 @@ def run_classification(args: argparse.Namespace) -> None:
                     stable_conf = current_conf
 
             annotated = frame.copy()
+            if crop_box is not None:
+                x1, y1, x2, y2 = crop_box
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 220, 255), 2)
             if stable_class:
                 status_text = f"{format_detection(stable_class)} 置信度 {stable_conf:.2f}"
             else:
@@ -149,6 +167,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--conf", type=float, default=0.45)
     parser.add_argument("--imgsz", type=int, default=224)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--crop-ratio", type=float, default=1.0, help="Center crop ratio before classification.")
     parser.add_argument("--width", type=int, default=320)
     parser.add_argument("--height", type=int, default=240)
     parser.add_argument("--fps", type=int, default=30)
