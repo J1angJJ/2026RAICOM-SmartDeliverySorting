@@ -10,15 +10,18 @@
 │   └── raicom_goods.py          # 9 类物品顺序和中文输出映射
 ├── detect/                      # Ubuntu 虚拟机使用
 │   ├── capture_dataset.py       # USB 相机采集图片
-│   ├── detect_camera.py         # 摄像头实时推理
+│   ├── classify_camera.py       # 摄像头实时分类推理
+│   ├── detect_camera.py         # 检测模型推理，备用
 │   ├── camera_utils.py
 │   ├── environment.yml
 │   └── models/
-│       └── best.pt              # 训练后手动放入，不进 git
+│       └── best-cls.pt          # 分类模型训练后手动放入，不进 git
 └── train/                       # Windows 本机使用
-    ├── prepare_dataset.py       # 整理 YOLO 数据集
-    ├── train_yolo.py            # 训练 YOLO
-    ├── export_for_vm.py         # 复制 best.pt 到 detect/models
+    ├── prepare_classification_dataset.py # 整理分类数据集
+    ├── train_classifier.py      # 训练 YOLO 分类模型
+    ├── prepare_dataset.py       # 检测数据集整理，备用
+    ├── train_yolo.py            # 检测模型训练，备用
+    ├── export_for_vm.py         # 复制分类权重到 detect/models
     ├── data_template.yaml
     └── environment.yml
 ```
@@ -96,73 +99,67 @@ detect/packages/raicom_capture_时间戳.tar.gz
 
 将该压缩包传到 Windows 后解压，再把其中的 `capture/` 内容整理到 `train/raw_capture/`。
 
-## 2. 本机标注与整理数据集
+## 2. 本机整理分类数据集
 
-在 Windows 本机使用任意 YOLO 标注工具生成 `.txt` 标签。推荐保持以下结构：
+本任务只需要判断包裹类别，摄像头画面中每次放置一个目标物品即可，因此使用分类模型，不需要检测框标注。推荐保持以下结构：
 
 ```text
 train/raw_capture/
 ├── paper/
-│   ├── paper_001.jpg
-│   └── paper_001.txt
+│   └── 20260625_072131/
+│       └── paper_001.jpg
 ├── banana/
 └── tv/
 ```
 
-标签格式为 YOLO detection 格式：
-
-```text
-class_id x_center y_center width height
-```
-
-`prepare_dataset.py` 会按文件夹名重写 `class_id`，避免手工标错类别编号。
-
-```powershell
+```cmd
 cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train
-C:\Users\JJ406\.conda\envs\cv-train\python.exe prepare_dataset.py --raw-dir raw_capture --output-dir data\raicom_goods --clean
+C:\Users\JJ406\.conda\envs\cv-train\python.exe prepare_classification_dataset.py --raw-dir raw_capture --output-dir training_workspace\raicom_goods_cls --clean
 ```
 
 生成：
 
 ```text
-train/data/raicom_goods/
-├── data.yaml
+train/training_workspace/raicom_goods_cls/
 ├── classes.txt
-├── images/train
-├── images/val
-├── labels/train
-└── labels/val
+├── names.yaml
+├── train/
+│   ├── tv/
+│   └── ...
+└── val/
+    ├── tv/
+    └── ...
 ```
 
 ## 3. 本机训练
 
 本机训练环境参考 `R:\ai-context` 中的 `cv-train`：Python 3.11、PyTorch CUDA、Ultralytics YOLO。
 
-```powershell
+```cmd
 cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train
-C:\Users\JJ406\.conda\envs\cv-train\python.exe train_yolo.py --data data\raicom_goods\data.yaml --model yolov8n.pt --epochs 100 --imgsz 640 --batch 8 --device 0
+C:\Users\JJ406\.conda\envs\cv-train\python.exe train_classifier.py --data training_workspace\raicom_goods_cls --model yolo11n-cls.pt --epochs 80 --imgsz 224 --batch 32 --device 0 --workers 4 --patience 20 --project training_workspace\train_runs --name raicom_goods_yolo11n_cls --exist-ok
 ```
 
 训练完成后权重位于：
 
 ```text
-train/outputs/train_runs/raicom_goods/weights/best.pt
+train/training_workspace/train_runs/raicom_goods_yolo11n_cls/weights/best.pt
 ```
 
 复制到虚拟机推理目录：
 
-```powershell
-C:\Users\JJ406\.conda\envs\cv-train\python.exe export_for_vm.py --best outputs\train_runs\raicom_goods\weights\best.pt
+```cmd
+C:\Users\JJ406\.conda\envs\cv-train\python.exe export_for_vm.py
 ```
 
-然后将 `detect/models/best.pt` 同步到虚拟机对应目录。
+然后将 `detect/models/best-cls.pt` 同步到虚拟机对应目录。
 
 ## 4. 虚拟机实时推理
 
 ```bash
 cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
 source /home/noetic/yolo_detect/venv/bin/activate
-python detect_camera.py --camera 0 --model models/best.pt --conf 0.45 --device cpu
+python classify_camera.py --camera 0 --model models/best-cls.pt --conf 0.45 --device cpu
 ```
 
 如果摄像头编号不是 `/dev/video0`，先查看：
@@ -188,8 +185,8 @@ v4l2-ctl -d /dev/video0 --set-fmt-video=width=320,height=240,pixelformat=YUYV --
 
 ## 6. 提交检查
 
-- `detect/models/best.pt` 已放入虚拟机推理目录。
-- `detect_camera.py` 能打开 USB 摄像头。
-- 图像中有检测框和类别标记。
+- `detect/models/best-cls.pt` 已放入虚拟机推理目录。
+- `classify_camera.py` 能打开 USB 摄像头。
+- 图像中有类别文字和置信度。
 - 终端输出中文结果。
 - `common/raicom_goods.py` 中类别顺序与训练数据 `data.yaml` 一致。

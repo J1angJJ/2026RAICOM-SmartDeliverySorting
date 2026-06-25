@@ -6,18 +6,18 @@ from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Copy trained best.pt to the VM detect model folder.")
+    parser = argparse.ArgumentParser(description="Copy trained model weight to the VM detect model folder.")
     parser.add_argument(
         "--best",
         type=Path,
-        default=Path("outputs/train_runs/raicom_goods/weights/best.pt"),
+        default=Path("training_workspace/train_runs/raicom_goods_yolo11n_cls/weights/best.pt"),
         help="Trained best.pt from Ultralytics output.",
     )
     parser.add_argument(
         "--target",
         type=Path,
-        default=Path("../detect/models/best.pt"),
-        help="Target model path for Ubuntu VM detection.",
+        default=Path("../detect/models/best-cls.pt"),
+        help="Target model path for Ubuntu VM inference.",
     )
     args = parser.parse_args()
 
