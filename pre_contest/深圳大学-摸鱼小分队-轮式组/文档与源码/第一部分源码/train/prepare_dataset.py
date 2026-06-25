@@ -57,6 +57,11 @@ def rewrite_label(source: Path, target: Path, class_name: str) -> None:
     target.write_text("\n".join(rewritten) + ("\n" if rewritten else ""), encoding="utf-8")
 
 
+def write_full_box_label(target: Path, class_name: str) -> None:
+    expected_id = CLASS_NAME_TO_ID[class_name]
+    target.write_text(f"{expected_id} 0.5 0.5 1.0 1.0\n", encoding="utf-8")
+
+
 def write_dataset_yaml(dataset_dir: Path) -> None:
     names = {index: name for index, name in enumerate(CLASS_NAMES)}
     data = {
@@ -81,7 +86,7 @@ def prepare_dataset(args: argparse.Namespace) -> None:
         raise SystemExit(f"No images found under class folders in {raw_dir}")
 
     missing = [(class_name, image_path) for class_name, image_path, label in samples if label is None]
-    if missing and not args.allow_empty_labels:
+    if missing and not args.allow_empty_labels and not args.auto_full_box_labels:
         preview = "\n".join(f"- {class_name}: {image_path}" for class_name, image_path in missing[:10])
         raise SystemExit(
             "Missing YOLO txt labels. Label images first, or pass --allow-empty-labels for negative samples.\n"
@@ -113,7 +118,10 @@ def prepare_dataset(args: argparse.Namespace) -> None:
             target_label = output_dir / "labels" / split / f"{stem}.txt"
             shutil.copy2(image_path, target_image)
             if label_path is None:
-                target_label.write_text("", encoding="utf-8")
+                if args.auto_full_box_labels:
+                    write_full_box_label(target_label, class_name)
+                else:
+                    target_label.write_text("", encoding="utf-8")
             else:
                 rewrite_label(label_path, target_label, class_name)
             copied[split] += 1
@@ -122,6 +130,8 @@ def prepare_dataset(args: argparse.Namespace) -> None:
     print(f"Dataset ready: {output_dir}")
     print(f"train images: {copied['train']}, val images: {copied['val']}")
     print(f"data yaml: {output_dir / 'data.yaml'}")
+    if missing and args.auto_full_box_labels:
+        print(f"auto full-box labels: {len(missing)}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,6 +142,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--clean", action="store_true", help="Remove output directory before writing.")
     parser.add_argument("--allow-empty-labels", action="store_true", help="Allow images without txt labels.")
+    parser.add_argument(
+        "--auto-full-box-labels",
+        action="store_true",
+        help="Generate full-image YOLO boxes for missing labels. Use only when each image contains one centered object.",
+    )
     return parser.parse_args()
 
 
