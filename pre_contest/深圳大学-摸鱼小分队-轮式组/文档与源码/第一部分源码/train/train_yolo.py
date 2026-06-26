@@ -38,7 +38,7 @@ def train(args: argparse.Namespace) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train RAICOM goods YOLO model on Windows.")
     parser.add_argument("--data", type=Path, default=Path("data/raicom_goods/data.yaml"))
-    parser.add_argument("--model", default="yolov8n.pt", help="Base YOLO model, e.g. yolo11n.pt or yolo26n.pt.")
+    parser.add_argument("--model", default="yolo26n.pt", help="Base YOLO model, e.g. yolo26n.pt or yolo26s.pt.")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=8)
