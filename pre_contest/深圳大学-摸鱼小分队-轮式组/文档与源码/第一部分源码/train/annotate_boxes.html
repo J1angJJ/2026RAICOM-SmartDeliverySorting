@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RAICOM Goods Box Annotator</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #17191d;
+        --panel: #22262b;
+        --panel-2: #2b3036;
+        --text: #eef2f5;
+        --muted: #aeb8c2;
+        --line: #3b434c;
+        --accent: #42d392;
+        --warn: #ffcc66;
+        --danger: #ff6b6b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Segoe UI",
+          "Microsoft YaHei",
+          sans-serif;
+      }
+
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel-2);
+        color: var(--text);
+        font: inherit;
+        min-height: 36px;
+      }
+
+      button {
+        padding: 0 12px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+
+      button.primary {
+        border-color: #2aa66d;
+        background: #21764f;
+      }
+
+      button.danger {
+        border-color: #8f3939;
+        background: #5a2528;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      aside {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+        padding: 14px;
+      }
+
+      main {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-width: 0;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 10px 14px;
+      }
+
+      .title {
+        min-width: 0;
+      }
+
+      .title strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .title span,
+      .meta,
+      .status {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .toolbar,
+      .filters,
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .toolbar {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .filters {
+        align-items: center;
+      }
+
+      .filters select {
+        flex: 1;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+        padding: 10px;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 20px;
+      }
+
+      .list {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #1c1f23;
+      }
+
+      .item {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        border-bottom: 1px solid #2d333a;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .item:last-child {
+        border-bottom: 0;
+      }
+
+      .item.active {
+        background: #314238;
+      }
+
+      .item .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--danger);
+      }
+
+      .item.done .dot {
+        background: var(--accent);
+      }
+
+      .item .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .canvas-wrap {
+        display: grid;
+        place-items: center;
+        min-height: 0;
+        padding: 14px;
+        overflow: auto;
+      }
+
+      canvas {
+        max-width: 100%;
+        max-height: calc(100vh - 86px);
+        border: 1px solid var(--line);
+        background: #0d0f11;
+        image-rendering: auto;
+      }
+
+      .empty {
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .status {
+        min-height: 20px;
+      }
+
+      .kbd {
+        color: var(--warn);
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        aside {
+          max-height: 42vh;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside>
+        <button class="primary" id="openDirBtn">打开 raw_capture</button>
+        <div class="filters">
+          <select id="classFilter">
+            <option value="all">全部类别</option>
+          </select>
+          <select id="stateFilter">
+            <option value="all">全部状态</option>
+            <option value="todo">未标</option>
+            <option value="done">已标</option>
+          </select>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>图片</span><strong id="totalCount">0</strong></div>
+          <div class="stat"><span>已标</span><strong id="doneCount">0</strong></div>
+        </div>
+        <div class="status" id="status">请选择 train/raw_capture 目录。</div>
+        <div class="list" id="imageList"></div>
+      </aside>
+
+      <main>
+        <div class="topbar">
+          <div class="title">
+            <strong id="imageTitle">未打开数据集</strong>
+            <span id="imageMeta">N/A</span>
+          </div>
+          <div class="toolbar">
+            <button id="prevBtn" disabled>上一张</button>
+            <button id="saveBtn" class="primary" disabled>保存</button>
+            <button id="clearBtn" class="danger" disabled>清空</button>
+            <button id="nextBtn" disabled>下一张</button>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="canvas"></canvas>
+          <div class="empty" id="emptyState">
+            画框：按住左键拖拽。<span class="kbd">S</span> 保存，
+            <span class="kbd">A/D</span> 切换，<span class="kbd">Delete</span> 清空。
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const CLASS_NAMES = [
+        "tv",
+        "air_conditioner",
+        "fridge",
+        "paper",
+        "clothes",
+        "toothbrush",
+        "banana",
+        "orange",
+        "apple",
+      ];
+      const CLASS_ID = Object.fromEntries(CLASS_NAMES.map((name, index) => [name, index]));
+      const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "bmp"]);
+
+      const openDirBtn = document.querySelector("#openDirBtn");
+      const classFilter = document.querySelector("#classFilter");
+      const stateFilter = document.querySelector("#stateFilter");
+      const totalCount = document.querySelector("#totalCount");
+      const doneCount = document.querySelector("#doneCount");
+      const statusEl = document.querySelector("#status");
+      const imageList = document.querySelector("#imageList");
+      const imageTitle = document.querySelector("#imageTitle");
+      const imageMeta = document.querySelector("#imageMeta");
+      const prevBtn = document.querySelector("#prevBtn");
+      const saveBtn = document.querySelector("#saveBtn");
+      const clearBtn = document.querySelector("#clearBtn");
+      const nextBtn = document.querySelector("#nextBtn");
+      const canvas = document.querySelector("#canvas");
+      const emptyState = document.querySelector("#emptyState");
+      const ctx = canvas.getContext("2d");
+
+      let samples = [];
+      let filtered = [];
+      let currentIndex = -1;
+      let currentImage = null;
+      let currentUrl = "";
+      let currentBox = null;
+      let draftBox = null;
+      let dragStart = null;
+
+      for (const className of CLASS_NAMES) {
+        const option = document.createElement("option");
+        option.value = className;
+        option.textContent = className;
+        classFilter.appendChild(option);
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function imageStem(filename) {
+        const dot = filename.lastIndexOf(".");
+        return dot >= 0 ? filename.slice(0, dot) : filename;
+      }
+
+      function isImageFile(name) {
+        const ext = name.split(".").pop().toLowerCase();
+        return IMAGE_EXTS.has(ext);
+      }
+
+      async function readLabel(sample) {
+        try {
+          const handle = await sample.parentHandle.getFileHandle(`${imageStem(sample.name)}.txt`);
+          const file = await handle.getFile();
+          const text = (await file.text()).trim();
+          if (!text) {
+            return null;
+          }
+          const parts = text.split(/\s+/).map(Number);
+          if (parts.length < 5 || parts.some(Number.isNaN)) {
+            return null;
+          }
+          return {
+            classId: parts[0],
+            x: parts[1],
+            y: parts[2],
+            w: parts[3],
+            h: parts[4],
+          };
+        } catch {
+          return null;
+        }
+      }
+
+      async function collectImages(rootHandle) {
+        const collected = [];
+
+        async function walk(dirHandle, pathParts, className) {
+          for await (const [name, handle] of dirHandle.entries()) {
+            if (handle.kind === "directory") {
+              const nextClass = className ?? (CLASS_ID[name] !== undefined ? name : null);
+              await walk(handle, [...pathParts, name], nextClass);
+            } else if (handle.kind === "file" && className && isImageFile(name)) {
+              collected.push({
+                name,
+                className,
+                classId: CLASS_ID[className],
+                path: [...pathParts, name].join("/"),
+                imageHandle: handle,
+                parentHandle: dirHandle,
+                label: null,
+              });
+            }
+          }
+        }
+
+        await walk(rootHandle, [], null);
+        collected.sort((a, b) => a.path.localeCompare(b.path, "en"));
+        for (const sample of collected) {
+          sample.label = await readLabel(sample);
+        }
+        return collected;
+      }
+
+      function applyFilters() {
+        const classValue = classFilter.value;
+        const stateValue = stateFilter.value;
+        filtered = samples.filter((sample) => {
+          const classOk = classValue === "all" || sample.className === classValue;
+          const done = Boolean(sample.label);
+          const stateOk = stateValue === "all" || (stateValue === "done" ? done : !done);
+          return classOk && stateOk;
+        });
+        if (currentIndex >= filtered.length) {
+          currentIndex = filtered.length - 1;
+        }
+        renderList();
+        renderStats();
+        updateButtons();
+      }
+
+      function renderStats() {
+        totalCount.textContent = String(samples.length);
+        doneCount.textContent = String(samples.filter((sample) => sample.label).length);
+      }
+
+      function renderList() {
+        imageList.innerHTML = "";
+        const currentSample = filtered[currentIndex];
+        filtered.forEach((sample, index) => {
+          const row = document.createElement("div");
+          row.className = `item${sample.label ? " done" : ""}${sample === currentSample ? " active" : ""}`;
+          row.innerHTML = `<span class="dot"></span><span class="name">${sample.path}</span>`;
+          row.addEventListener("click", () => loadAt(index));
+          imageList.appendChild(row);
+        });
+      }
+
+      function updateButtons() {
+        const hasCurrent = currentIndex >= 0 && currentIndex < filtered.length;
+        prevBtn.disabled = !hasCurrent || currentIndex <= 0;
+        nextBtn.disabled = !hasCurrent || currentIndex >= filtered.length - 1;
+        saveBtn.disabled = !hasCurrent || !currentBox;
+        clearBtn.disabled = !hasCurrent;
+      }
+
+      function yoloToPixel(label, width, height) {
+        const boxWidth = label.w * width;
+        const boxHeight = label.h * height;
+        return {
+          x1: label.x * width - boxWidth / 2,
+          y1: label.y * height - boxHeight / 2,
+          x2: label.x * width + boxWidth / 2,
+          y2: label.y * height + boxHeight / 2,
+        };
+      }
+
+      function pixelToYolo(box, width, height) {
+        const x1 = Math.max(0, Math.min(width, Math.min(box.x1, box.x2)));
+        const x2 = Math.max(0, Math.min(width, Math.max(box.x1, box.x2)));
+        const y1 = Math.max(0, Math.min(height, Math.min(box.y1, box.y2)));
+        const y2 = Math.max(0, Math.min(height, Math.max(box.y1, box.y2)));
+        if (x2 - x1 < 2 || y2 - y1 < 2) {
+          return null;
+        }
+        return {
+          x: (x1 + x2) / 2 / width,
+          y: (y1 + y2) / 2 / height,
+          w: (x2 - x1) / width,
+          h: (y2 - y1) / height,
+        };
+      }
+
+      function canvasPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+          y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+        };
+      }
+
+      function drawBox(box, color) {
+        if (!box) {
+          return;
+        }
+        const x1 = Math.min(box.x1, box.x2);
+        const y1 = Math.min(box.y1, box.y2);
+        const x2 = Math.max(box.x1, box.x2);
+        const y2 = Math.max(box.y1, box.y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(2, canvas.width / 320);
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      }
+
+      function redraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!currentImage) {
+          return;
+        }
+        ctx.drawImage(currentImage, 0, 0);
+        drawBox(currentBox, "#42d392");
+        drawBox(draftBox, "#ffcc66");
+      }
+
+      async function loadAt(index) {
+        if (index < 0 || index >= filtered.length) {
+          return;
+        }
+        currentIndex = index;
+        const sample = filtered[currentIndex];
+        const file = await sample.imageHandle.getFile();
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+        currentUrl = URL.createObjectURL(file);
+
+        currentImage = new Image();
+        currentImage.onload = () => {
+          canvas.width = currentImage.naturalWidth;
+          canvas.height = currentImage.naturalHeight;
+          emptyState.style.display = "none";
+          currentBox = sample.label ? yoloToPixel(sample.label, canvas.width, canvas.height) : null;
+          draftBox = null;
+          redraw();
+          updateButtons();
+        };
+        currentImage.src = currentUrl;
+
+        imageTitle.textContent = sample.path;
+        imageMeta.textContent = `${sample.className} -> ${sample.classId}`;
+        renderList();
+        updateButtons();
+      }
+
+      async function saveCurrent() {
+        const sample = filtered[currentIndex];
+        if (!sample || !currentBox) {
+          return;
+        }
+        const indexBeforeSave = currentIndex;
+        const yolo = pixelToYolo(currentBox, canvas.width, canvas.height);
+        if (!yolo) {
+          setStatus("框太小，未保存。");
+          return;
+        }
+        const labelHandle = await sample.parentHandle.getFileHandle(`${imageStem(sample.name)}.txt`, { create: true });
+        const writable = await labelHandle.createWritable();
+        const line = `${sample.classId} ${yolo.x.toFixed(8)} ${yolo.y.toFixed(8)} ${yolo.w.toFixed(8)} ${yolo.h.toFixed(8)}\n`;
+        await writable.write(line);
+        await writable.close();
+        sample.label = { classId: sample.classId, ...yolo };
+        setStatus(`已保存：${sample.path}`);
+        applyFilters();
+        if (filtered.length) {
+          await loadAt(Math.min(indexBeforeSave, filtered.length - 1));
+        } else {
+          renderList();
+          renderStats();
+          updateButtons();
+        }
+      }
+
+      async function clearCurrent() {
+        const sample = filtered[currentIndex];
+        if (!sample) {
+          return;
+        }
+        const labelHandle = await sample.parentHandle.getFileHandle(`${imageStem(sample.name)}.txt`, { create: true });
+        const writable = await labelHandle.createWritable();
+        await writable.write("");
+        await writable.close();
+        sample.label = null;
+        currentBox = null;
+        redraw();
+        setStatus(`已清空：${sample.path}`);
+        applyFilters();
+      }
+
+      openDirBtn.addEventListener("click", async () => {
+        if (!window.showDirectoryPicker) {
+          setStatus("请使用新版 Chrome 或 Edge 打开本文件。");
+          return;
+        }
+        const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+        setStatus("正在扫描图片和标签...");
+        samples = await collectImages(handle);
+        currentIndex = samples.length ? 0 : -1;
+        applyFilters();
+        if (samples.length) {
+          await loadAt(0);
+          setStatus("目录已打开。");
+        } else {
+          setStatus("没有找到按类别目录存放的图片。");
+        }
+      });
+
+      classFilter.addEventListener("change", () => {
+        currentIndex = 0;
+        applyFilters();
+        if (filtered.length) {
+          loadAt(0);
+        }
+      });
+
+      stateFilter.addEventListener("change", () => {
+        currentIndex = 0;
+        applyFilters();
+        if (filtered.length) {
+          loadAt(0);
+        }
+      });
+
+      prevBtn.addEventListener("click", () => loadAt(currentIndex - 1));
+      nextBtn.addEventListener("click", () => loadAt(currentIndex + 1));
+      saveBtn.addEventListener("click", saveCurrent);
+      clearBtn.addEventListener("click", clearCurrent);
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (!currentImage) {
+          return;
+        }
+        canvas.setPointerCapture(event.pointerId);
+        dragStart = canvasPoint(event);
+        draftBox = { x1: dragStart.x, y1: dragStart.y, x2: dragStart.x, y2: dragStart.y };
+        redraw();
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        if (!dragStart || !draftBox) {
+          return;
+        }
+        const point = canvasPoint(event);
+        draftBox.x2 = point.x;
+        draftBox.y2 = point.y;
+        redraw();
+      });
+
+      canvas.addEventListener("pointerup", () => {
+        if (!draftBox) {
+          return;
+        }
+        currentBox = draftBox;
+        draftBox = null;
+        dragStart = null;
+        redraw();
+        updateButtons();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.target instanceof HTMLSelectElement) {
+          return;
+        }
+        const key = event.key.toLowerCase();
+        if (key === "s") {
+          event.preventDefault();
+          saveCurrent();
+        } else if (key === "a") {
+          event.preventDefault();
+          loadAt(currentIndex - 1);
+        } else if (key === "d") {
+          event.preventDefault();
+          loadAt(currentIndex + 1);
+        } else if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          clearCurrent();
+        }
+      });
+    </script>
+  </body>
+</html>
