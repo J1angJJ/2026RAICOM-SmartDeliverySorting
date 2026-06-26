@@ -1,6 +1,6 @@
 path: data/raicom_goods
-train: images/train
-val: images/val
+train: train/images
+val: valid/images
 nc: 9
 
 names:

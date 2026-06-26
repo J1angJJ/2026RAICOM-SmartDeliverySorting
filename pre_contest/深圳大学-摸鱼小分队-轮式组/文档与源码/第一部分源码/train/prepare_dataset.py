@@ -65,8 +65,8 @@ def write_full_box_label(target: Path, class_name: str) -> None:
 def write_dataset_yaml(dataset_dir: Path) -> None:
     data = {
         "path": str(dataset_dir.resolve()).replace("\\", "/"),
-        "train": "images/train",
-        "val": "images/val",
+        "train": "train/images",
+        "val": "valid/images",
         "nc": len(CLASS_NAMES),
         "names": CLASS_NAMES,
     }
@@ -96,9 +96,10 @@ def prepare_dataset(args: argparse.Namespace) -> None:
     if output_dir.exists() and args.clean:
         shutil.rmtree(output_dir)
 
-    for split in ("train", "val"):
-        (output_dir / "images" / split).mkdir(parents=True, exist_ok=True)
-        (output_dir / "labels" / split).mkdir(parents=True, exist_ok=True)
+    split_dirs = {"train": "train", "val": "valid"}
+    for split_dir in split_dirs.values():
+        (output_dir / split_dir / "images").mkdir(parents=True, exist_ok=True)
+        (output_dir / split_dir / "labels").mkdir(parents=True, exist_ok=True)
 
     rng = random.Random(args.seed)
     by_class: dict[str, list[tuple[str, Path, Path | None]]] = {name: [] for name in CLASS_NAMES}
@@ -114,8 +115,9 @@ def prepare_dataset(args: argparse.Namespace) -> None:
             _, image_path, label_path = sample
             split = "val" if id(sample) in val_items else "train"
             stem = f"{class_name}_{image_path.stem}"
-            target_image = output_dir / "images" / split / f"{stem}{image_path.suffix.lower()}"
-            target_label = output_dir / "labels" / split / f"{stem}.txt"
+            split_dir = split_dirs[split]
+            target_image = output_dir / split_dir / "images" / f"{stem}{image_path.suffix.lower()}"
+            target_label = output_dir / split_dir / "labels" / f"{stem}.txt"
             shutil.copy2(image_path, target_image)
             if label_path is None:
                 if args.auto_full_box_labels:

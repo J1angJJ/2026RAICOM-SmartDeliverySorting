@@ -23,7 +23,7 @@ def dataset_path(data_yaml: Path, data: dict) -> Path:
 
 def check_split(root: Path, split_name: str, split_value: str, class_count: int) -> tuple[int, int, list[str]]:
     image_dir = root / split_value
-    label_dir = root / split_value.replace("images", "labels", 1)
+    label_dir = root / split_value.replace("/images", "/labels").replace("\\images", "\\labels")
     images = sorted(path for path in image_dir.rglob("*") if path.suffix.lower() in IMAGE_EXTS)
     errors: list[str] = []
     labeled = 0
