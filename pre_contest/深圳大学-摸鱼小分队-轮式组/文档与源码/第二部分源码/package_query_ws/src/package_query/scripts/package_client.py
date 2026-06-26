@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import sys
+
 import rospy
 from package_query.srv import QueryPackage
+
 
 def main():
     rospy.init_node("package_query_client")
@@ -30,8 +32,9 @@ def main():
             print("客户端发送物品：{}".format(item))
             print("服务端返回信息：{}".format(response.message))
 
-    except rospy.ServiceException as e:
-        print("服务调用失败：{}".format(e))
+    except rospy.ServiceException as exc:
+        print("服务调用失败：{}".format(exc))
+
 
 if __name__ == "__main__":
     main()

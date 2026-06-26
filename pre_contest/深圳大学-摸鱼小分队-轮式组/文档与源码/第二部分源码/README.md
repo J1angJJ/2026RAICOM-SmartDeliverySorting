@@ -16,22 +16,22 @@
 本项目第二部分工作空间为：
 
 ```bash
-~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws
+~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws
 ```
 
 ## 3. 创建工作空间和功能包
 
 ```bash
 source /opt/ros/noetic/setup.bash
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/src
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/src
+mkdir -p ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/src
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/src
 catkin_create_pkg package_query rospy std_msgs message_generation
 ```
 
 进入功能包：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/src/package_query
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/src/package_query
 mkdir -p srv scripts
 ```
 
@@ -247,7 +247,7 @@ chmod +x scripts/package_client.py
 回到工作空间根目录：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws
 catkin_make
 ```
 
@@ -260,7 +260,7 @@ source devel/setup.bash
 可选：写入 `.bashrc`：
 
 ```bash
-echo "source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash" >> ~/.bashrc
+echo "source ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -275,7 +275,7 @@ roscore
 第二个终端：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
+source ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
 rosrun package_query package_server.py
 ```
 
@@ -290,7 +290,7 @@ rosrun package_query package_server.py
 第三个终端：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
+source ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
 rosservice list
 ```
 
@@ -327,7 +327,7 @@ rosservice call /query_package "item: '空调'"
 服务端保持运行，第三个终端执行：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
+source ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
 rosrun package_query package_client.py 卫生纸
 ```
 
@@ -378,7 +378,7 @@ rosrun package_query package_client.py 空调
 ## 14. 第二部分提交结构
 
 ```text
-学校名称_队伍名称_轮式组/
+深圳大学-摸鱼小分队-轮式组/
 ├── 第二部分/
 │   ├── 任务一/
 │   │   └── 视频/

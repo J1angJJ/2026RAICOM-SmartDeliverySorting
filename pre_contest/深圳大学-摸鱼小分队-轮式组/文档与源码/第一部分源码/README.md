@@ -1,58 +1,53 @@
 # 第一部分：包裹识别
 
-本部分采用“虚拟机采集与推理、本机 Windows 训练”的工作流。原因是 USB 摄像头在虚拟机中已经验证可用，但显卡直通训练不稳定；本机 Windows 的 `cv-train` 环境可以使用 RTX 4060 Laptop GPU 训练。
+本部分采用“虚拟机采集与推理、本机 Windows 训练”的工作流。USB 摄像头在 Ubuntu/ROS 虚拟机中已验证可用，本机 Windows 的 `cv-train` 环境用于 GPU 训练。
+
+当前主线为 **YOLO26 检测模型**。早期分类模型代码仍保留作为备份，但正式演示优先使用检测模型，因为比赛距离下目标较小，且物品不一定在画面中心。
 
 ## 目录结构
 
 ```text
 第一部分源码/
 ├── common/
-│   └── raicom_goods.py          # 9 类物品顺序和中文输出映射
-├── detect/                      # Ubuntu 虚拟机使用
-│   ├── capture_dataset.py       # USB 相机采集图片
-│   ├── classify_camera.py       # 摄像头实时分类推理
-│   ├── detect_camera.py         # 检测模型推理，备用
+│   └── raicom_goods.py              # 9 类物品顺序和中文输出映射
+├── detect/                          # Ubuntu 虚拟机使用
+│   ├── capture_dataset.py           # USB 摄像头采集图片
+│   ├── detect_camera.py             # 检测模型实时推理
+│   ├── classify_camera.py           # 分类模型推理，备份
 │   ├── camera_utils.py
+│   ├── pack_capture.sh              # 打包采集数据
 │   ├── environment.yml
 │   └── models/
-│       └── best-cls.pt          # 分类模型训练后手动放入，不进 git
-└── train/                       # Windows 本机使用
-    ├── prepare_classification_dataset.py # 整理分类数据集
-    ├── train_classifier.py      # 训练 YOLO 分类模型
-    ├── prepare_dataset.py       # 检测数据集整理，备用
-    ├── train_yolo.py            # 检测模型训练，备用
-    ├── export_for_vm.py         # 复制分类权重到 detect/models
+│       └── best.pt                  # 检测权重，手动放入，不进 git
+└── train/                           # Windows 本机使用
+    ├── annotate_boxes.html          # 本地浏览器检测框标注工具
+    ├── prepare_dataset.py           # 整理 YOLO26 检测数据集
+    ├── check_detection_dataset.py   # 检查漏标、空标、越界框
+    ├── train_yolo.py                # 训练 YOLO26 检测模型
+    ├── export_for_vm.py             # 复制权重到 detect/models
     ├── data_template.yaml
     └── environment.yml
 ```
 
 数据集、采集图片、训练输出和模型权重不进入 git。
 
-## 类别定义
+## 类别顺序
 
-类别顺序固定如下，采集、标注、训练和推理都必须保持一致：
-
-```text
-0 tv              电视机    家电
-1 air_conditioner 空调      家电
-2 fridge          冰箱      家电
-3 paper           卫生纸    日用品
-4 clothes         衣服      日用品
-5 toothbrush      牙刷      日用品
-6 banana          香蕉      水果
-7 orange          橘子      水果
-8 apple           苹果      水果
-```
-
-终端输出格式：
+训练、标注、推理必须保持以下顺序：
 
 ```text
-图中包裹是卫生纸，类别为日用品。
+0 tv              电视机   家电
+1 air_conditioner 空调     家电
+2 fridge          冰箱     家电
+3 paper           卫生纸   日用品
+4 clothes         衣服     日用品
+5 toothbrush      牙刷     日用品
+6 banana          香蕉     水果
+7 orange          橘子     水果
+8 apple           苹果     水果
 ```
 
 ## 1. 虚拟机采集图片
-
-虚拟机沿用四足赛预选赛中已经验证过的 YOLO/USB 相机环境。摄像头按 V4L2 打开，使用 YUYV、320x240、30FPS。
 
 ```bash
 cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
@@ -60,133 +55,151 @@ source /home/noetic/yolo_detect/venv/bin/activate
 python capture_dataset.py paper --camera 0 --interval 0.5
 ```
 
-采集窗口中：
+采集窗口按键：
 
 ```text
-空格 开始/暂停自动拍照
-s 手动保存当前帧
-q 退出
+空格  开始/暂停自动拍照
+s     手动保存当前帧
+q     退出
 ```
 
-每类建议采集多张，目录示例：
-
-```text
-detect/capture/
-├── paper/
-│   └── 20260624_153000/
-├── banana/
-└── tv/
-```
-
-采集完成后，将 `detect/capture/` 传到 Windows 本机。可以直接复制到：
-
-```text
-第一部分源码/train/raw_capture/
-```
-
-也可以先在虚拟机中打包：
+采集完成后可打包：
 
 ```bash
-cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
 bash pack_capture.sh
 ```
 
-默认生成：
+将压缩包传回 Windows 后，整理到：
 
 ```text
-detect/packages/raicom_capture_时间戳.tar.gz
-```
-
-将该压缩包传到 Windows 后解压，再把其中的 `capture/` 内容整理到 `train/raw_capture/`。
-
-## 2. 本机整理分类数据集
-
-本任务只需要判断包裹类别，摄像头画面中每次放置一个目标物品即可，因此使用分类模型，不需要检测框标注。推荐保持以下结构：
-
-```text
-train/raw_capture/
+第一部分源码/train/raw_capture/
+├── tv/
+├── air_conditioner/
+├── fridge/
 ├── paper/
-│   └── 20260625_072131/
-│       └── paper_001.jpg
+├── clothes/
+├── toothbrush/
 ├── banana/
-└── tv/
+├── orange/
+└── apple/
 ```
 
-```cmd
-cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train
-C:\Users\JJ406\.conda\envs\cv-train\python.exe prepare_classification_dataset.py --raw-dir raw_capture --output-dir training_workspace\raicom_goods_cls --clean
-```
+## 2. 本机标注检测框
 
-生成：
+用 Chrome 或 Edge 打开：
 
 ```text
-train/training_workspace/raicom_goods_cls/
-├── classes.txt
-├── names.yaml
+train/annotate_boxes.html
+```
+
+点击 `打开 raw_capture`，选择：
+
+```text
+第一部分源码/train/raw_capture
+```
+
+操作方式：
+
+```text
+鼠标左键拖拽  画框
+S             保存当前框
+A / D         上一张 / 下一张
+Delete        清空当前图标签
+```
+
+标注器只需要画框，不需要选择类别。类别由父目录名自动推断，并写入每张图片旁边的同名 `.txt` 标签。
+
+## 3. 整理 YOLO26 数据集
+
+在 Windows `cmd` 中执行：
+
+```cmd
+cd /d "R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train"
+
+C:\Users\JJ406\.conda\envs\cv-train\python.exe prepare_dataset.py --raw-dir raw_capture --output-dir training_workspace\raicom_goods_yolo26 --clean
+```
+
+生成结构与之前 `final-demo` 的 YOLO26 数据集一致：
+
+```text
+training_workspace/raicom_goods_yolo26/
+├── data.yaml
 ├── train/
-│   ├── tv/
-│   └── ...
-└── val/
-    ├── tv/
-    └── ...
+│   ├── images/
+│   └── labels/
+└── valid/
+    ├── images/
+    └── labels/
 ```
 
-## 3. 本机训练
-
-本机训练环境参考 `R:\ai-context` 中的 `cv-train`：Python 3.11、PyTorch CUDA、Ultralytics YOLO。
+训练前检查：
 
 ```cmd
-cd R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train
-C:\Users\JJ406\.conda\envs\cv-train\python.exe train_classifier.py --data training_workspace\raicom_goods_cls --model yolo11n-cls.pt --epochs 80 --imgsz 224 --batch 32 --device 0 --workers 4 --patience 20 --project training_workspace\train_runs --name raicom_goods_yolo11n_cls --exist-ok
+C:\Users\JJ406\.conda\envs\cv-train\python.exe check_detection_dataset.py --data training_workspace\raicom_goods_yolo26\data.yaml
 ```
 
-训练完成后权重位于：
+正确结果应包含：
 
 ```text
-train/training_workspace/train_runs/raicom_goods_yolo11n_cls/weights/best.pt
+dataset ok
 ```
 
-复制到虚拟机推理目录：
+## 4. 训练 YOLO26
 
 ```cmd
-C:\Users\JJ406\.conda\envs\cv-train\python.exe export_for_vm.py
+C:\Users\JJ406\.conda\envs\cv-train\python.exe train_yolo.py --model yolo26n.pt --data "training_workspace\raicom_goods_yolo26\data.yaml" --project "training_workspace\train_runs" --name "raicom_goods_yolo26n_img800" --epochs 150 --imgsz 800 --batch 8 --device 0 --workers 4 --patience 40 --exist-ok
 ```
 
-然后将 `detect/models/best-cls.pt` 同步到虚拟机对应目录。
+训练完成后最佳权重位于：
 
-## 4. 虚拟机实时推理
+```text
+training_workspace/train_runs/raicom_goods_yolo26n_img800/weights/best.pt
+```
+
+如果显存不足，可改为：
+
+```text
+--imgsz 640 --batch 16
+```
+
+## 5. 导出并同步到虚拟机
+
+```cmd
+C:\Users\JJ406\.conda\envs\cv-train\python.exe export_for_vm.py --best "training_workspace\train_runs\raicom_goods_yolo26n_img800\weights\best.pt" --target "..\detect\models\best.pt"
+```
+
+传到虚拟机：
+
+```cmd
+scp "R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\detect\models\best.pt" noetic@192.168.31.11:"/home/noetic/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect/models/best.pt"
+```
+
+## 6. 虚拟机实时推理
 
 ```bash
 cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
 source /home/noetic/yolo_detect/venv/bin/activate
-python classify_camera.py --camera 0 --model models/best-cls.pt --conf 0.45 --device cpu
+python detect_camera.py --camera 0 --model models/best.pt --conf 0.35 --device cpu --imgsz 800
 ```
 
-如果摄像头编号不是 `/dev/video0`，先查看：
+如果 CPU 推理卡顿，可降低输入尺寸：
 
 ```bash
-ls /dev/video*
-v4l2-ctl --list-devices
+python detect_camera.py --camera 0 --model models/best.pt --conf 0.35 --device cpu --imgsz 640
 ```
 
-必要时先做底层相机测试：
+## 7. 录屏要点
 
-```bash
-v4l2-ctl -d /dev/video0 --set-fmt-video=width=320,height=240,pixelformat=YUYV --stream-mmap --stream-count=30
-```
-
-## 5. 录屏要点
-
-- 相机距离按更严格口径保持 20cm 以上。
-- 视频中展示 USB 相机、识别距离、识别窗口、终端中文输出。
-- 至少识别 3 个包裹类别，每类 2 张，共 6 次识别。
-- 画面左下角显示：`深圳大学 摸鱼小分队 轮式组`。
+- 摄像头距离按规则保持在要求范围。
+- 画面中展示 USB 摄像头、识别窗口、终端输出。
+- 至少覆盖规则要求的物品类别和次数。
+- 视频左下角显示：`深圳大学 摸鱼小分队 轮式组`。
 - 单个视频不超过 5 分钟，不加速。
 
-## 6. 提交检查
+## 8. 提交前检查
 
-- `detect/models/best-cls.pt` 已放入虚拟机推理目录。
-- `classify_camera.py` 能打开 USB 摄像头。
-- 图像中有类别文字和置信度。
-- 终端输出中文结果。
-- `common/raicom_goods.py` 中类别顺序与训练数据 `data.yaml` 一致。
+- `detect/models/best.pt` 已放入虚拟机推理目录。
+- `detect_camera.py` 能打开 USB 摄像头。
+- 画面中有检测框、类别和置信度。
+- 终端输出能对应物品类别。
+- `common/raicom_goods.py`、`data.yaml` 和模型类别顺序一致。

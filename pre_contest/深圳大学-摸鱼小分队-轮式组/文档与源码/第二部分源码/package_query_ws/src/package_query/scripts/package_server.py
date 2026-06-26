@@ -4,6 +4,7 @@
 import rospy
 from package_query.srv import QueryPackage, QueryPackageResponse
 
+
 PACKAGE_DATABASE = {
     "衣服": "日用品",
     "牙刷": "日用品",
@@ -15,6 +16,7 @@ PACKAGE_DATABASE = {
     "冰箱": "家电",
     "空调": "家电",
 }
+
 
 def handle_query(req):
     item = req.item.strip()
@@ -29,11 +31,13 @@ def handle_query(req):
     rospy.logwarn(message)
     return QueryPackageResponse("未知", message, False)
 
+
 def main():
     rospy.init_node("package_query_server")
     rospy.Service("query_package", QueryPackage, handle_query)
     rospy.loginfo("包裹类别查询服务已启动，服务名：/query_package")
     rospy.spin()
+
 
 if __name__ == "__main__":
     main()
