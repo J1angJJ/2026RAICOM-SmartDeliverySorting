@@ -63,12 +63,12 @@ def write_full_box_label(target: Path, class_name: str) -> None:
 
 
 def write_dataset_yaml(dataset_dir: Path) -> None:
-    names = {index: name for index, name in enumerate(CLASS_NAMES)}
     data = {
         "path": str(dataset_dir.resolve()).replace("\\", "/"),
         "train": "images/train",
         "val": "images/val",
-        "names": names,
+        "nc": len(CLASS_NAMES),
+        "names": CLASS_NAMES,
     }
     (dataset_dir / "data.yaml").write_text(
         yaml.safe_dump(data, allow_unicode=True, sort_keys=False),

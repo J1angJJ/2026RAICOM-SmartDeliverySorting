@@ -1,14 +1,15 @@
 path: data/raicom_goods
 train: images/train
 val: images/val
+nc: 9
 
 names:
-  0: tv
-  1: air_conditioner
-  2: fridge
-  3: paper
-  4: clothes
-  5: toothbrush
-  6: banana
-  7: orange
-  8: apple
+  - tv
+  - air_conditioner
+  - fridge
+  - paper
+  - clothes
+  - toothbrush
+  - banana
+  - orange
+  - apple
