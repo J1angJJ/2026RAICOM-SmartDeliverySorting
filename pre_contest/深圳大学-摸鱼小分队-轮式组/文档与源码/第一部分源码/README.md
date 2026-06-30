@@ -182,6 +182,14 @@ source /home/noetic/yolo_detect/venv/bin/activate
 python detect_camera.py --camera 0 --model models/best.pt --conf 0.35 --device cpu --imgsz 800
 ```
 
+检测框默认显示中文物品名和置信度。需要恢复 Ultralytics 原始英文标签时，追加：
+
+```bash
+--box-label-mode original
+```
+
+也可使用 `--box-label-mode none` 隐藏框标签。
+
 如果 CPU 推理卡顿，可降低输入尺寸：
 
 ```bash

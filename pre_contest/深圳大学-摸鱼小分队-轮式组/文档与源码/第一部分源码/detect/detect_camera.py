@@ -56,6 +56,54 @@ def draw_chinese_text(frame, text: str, x: int, y: int, font, color=(80, 255, 12
     return cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
 
 
+def plot_result_with_chinese_labels(result, font):
+    annotated = result.plot(labels=False)
+    if result.boxes is None or len(result.boxes) == 0:
+        return annotated
+
+    image = Image.fromarray(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(image)
+    image_width, image_height = image.size
+
+    for box in result.boxes:
+        x1, y1, _, _ = (int(round(value)) for value in box.xyxy[0].tolist())
+        cls_id = int(box.cls[0])
+        class_name = result.names[cls_id]
+        item_cn = CLASS_INFO.get(class_name, (class_name, "未知类别"))[0]
+        confidence = float(box.conf[0])
+        label = f"{item_cn} {confidence:.2f}"
+
+        text_bbox = draw.textbbox((0, 0), label, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+        label_width = text_width + 12
+        label_height = text_height + 8
+        label_x = min(max(0, x1), max(0, image_width - label_width))
+        label_y = y1 - label_height if y1 >= label_height else y1
+        label_y = min(max(0, label_y), max(0, image_height - label_height))
+
+        draw.rectangle(
+            (label_x, label_y, label_x + label_width, label_y + label_height),
+            fill=(0, 0, 0),
+        )
+        draw.text(
+            (label_x + 6, label_y + 4 - text_bbox[1]),
+            label,
+            font=font,
+            fill=(80, 255, 120),
+        )
+
+    return cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
+
+
+def plot_result(result, font, label_mode: str):
+    if label_mode == "original":
+        return result.plot()
+    if label_mode == "none":
+        return result.plot(labels=False)
+    return plot_result_with_chinese_labels(result, font)
+
+
 def best_class_from_result(result) -> str | None:
     if result.boxes is None or len(result.boxes) == 0:
         return None
@@ -83,6 +131,8 @@ def run_detection(args: argparse.Namespace) -> None:
         raise SystemExit("无法读取摄像头画面。请先检查 USB 直通和 v4l2-ctl。")
 
     font = load_font(args.font_size)
+    if args.box_label_mode == "chinese" and font is None:
+        raise SystemExit("中文框标签需要 Pillow 和中文字体，请检查 detect/environment.yml 与 Noto CJK 字体。")
     history: deque[str] = deque(maxlen=args.window_size)
     stable_class: str | None = None
     last_print = 0.0
@@ -103,7 +153,7 @@ def run_detection(args: argparse.Namespace) -> None:
                 if count >= args.confirm_count:
                     stable_class = common_class
 
-            annotated = result.plot()
+            annotated = plot_result(result, font, args.box_label_mode)
             if stable_class:
                 status_text = format_detection(stable_class)
             else:
@@ -142,6 +192,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--print-interval", type=float, default=0.5)
     parser.add_argument("--overlay", default="深圳大学 摸鱼小分队 轮式组")
     parser.add_argument("--font-size", type=int, default=22)
+    parser.add_argument(
+        "--box-label-mode",
+        choices=("chinese", "original", "none"),
+        default="chinese",
+        help="Detection box labels: Chinese (default), original Ultralytics labels, or hidden.",
+    )
     return parser.parse_args()
 
 
