@@ -1,4 +1,4 @@
-# 第一部分：包裹识别
+﻿# 第一部分：包裹识别
 
 本部分采用“虚拟机采集与推理、本机 Windows 训练”的工作流。USB 摄像头在 Ubuntu/ROS 虚拟机中已验证可用，本机 Windows 的 `cv-train` 环境用于 GPU 训练。
 
@@ -50,7 +50,7 @@
 ## 1. 虚拟机采集图片
 
 ```bash
-cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第一部分源码/detect
 source /home/noetic/yolo_detect/venv/bin/activate
 python capture_dataset.py paper --camera 0 --interval 0.5
 ```
@@ -114,7 +114,7 @@ Delete        清空当前图标签
 在 Windows `cmd` 中执行：
 
 ```cmd
-cd /d "R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\train"
+cd /d "R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-足式组\文档与源码\第一部分源码\train"
 
 C:\Users\JJ406\.conda\envs\cv-train\python.exe prepare_dataset.py --raw-dir raw_capture --output-dir training_workspace\raicom_goods_yolo26 --clean
 ```
@@ -171,13 +171,13 @@ C:\Users\JJ406\.conda\envs\cv-train\python.exe export_for_vm.py --best "training
 传到虚拟机：
 
 ```cmd
-scp "R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-轮式组\文档与源码\第一部分源码\detect\models\best.pt" noetic@192.168.31.11:"/home/noetic/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect/models/best.pt"
+scp "R:\2026RAICOM-SmartDeliverySorting\pre_contest\深圳大学-摸鱼小分队-足式组\文档与源码\第一部分源码\detect\models\best.pt" noetic@192.168.31.11:"/home/noetic/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第一部分源码/detect/models/best.pt"
 ```
 
 ## 6. 虚拟机实时推理
 
 ```bash
-cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-轮式组/文档与源码/第一部分源码/detect
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第一部分源码/detect
 source /home/noetic/yolo_detect/venv/bin/activate
 python detect_camera.py --camera 0 --model models/best.pt --conf 0.35 --device cpu --imgsz 800
 ```
@@ -201,7 +201,7 @@ python detect_camera.py --camera 0 --model models/best.pt --conf 0.35 --device c
 - 摄像头距离按规则保持在要求范围。
 - 画面中展示 USB 摄像头、识别窗口、终端输出。
 - 至少覆盖规则要求的物品类别和次数。
-- 视频左下角显示：`深圳大学 摸鱼小分队 轮式组`。
+- 视频左下角显示：`深圳大学 摸鱼小分队 足式组`。
 - 单个视频不超过 5 分钟，不加速。
 
 ## 8. 提交前检查

@@ -1,4 +1,4 @@
-# 第三部分任务二：ROS 工作空间覆盖复现步骤
+﻿# 第三部分任务二：ROS 工作空间覆盖复现步骤
 
 本文档用于复现第三部分任务二。任务要求创建两个 ROS 工作空间，并验证 `roscd usb_cam` 最终进入 `/opt/ros/noetic/share/usb_cam` 路径。
 
@@ -29,17 +29,17 @@
 `ws_b` 按赛题要求在虚拟机中通过 `git clone` 下载官方源码包；因此仓库中只保留 workspace 和 `src/CMakeLists.txt`，不预置 `usb_cam` 包源码。
 
 ```bash
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/视频
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第三部分源码/任务二
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_a/src
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/视频
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/文档与源码/第三部分源码/任务二
 ```
 
 ## 3. 创建工作空间 A
 
 ```bash
 source /opt/ros/noetic/setup.bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_a/src
 # 如果没有使用仓库预置的 ws_a，则执行：
 # catkin_create_pkg usb_cam rospy std_msgs
 ```
@@ -47,14 +47,14 @@ cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws
 编译工作空间 A：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_a
 catkin_make
 ```
 
 检查：
 
 ```bash
-ls ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src
+ls ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_a/src
 ```
 
 应看到：
@@ -69,16 +69,16 @@ usb_cam
 
 ```bash
 source /opt/ros/noetic/setup.bash
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src
 git clone -b develop https://github.com/ros-drivers/usb_cam.git
 ```
 
 检查：
 
 ```bash
-ls ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src
-ls ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src/usb_cam
+ls ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src
+ls ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src/usb_cam
 ```
 
 应看到：
@@ -98,7 +98,7 @@ sudo apt install -y libv4l-0 libv4l-dev v4l-utils
 ## 6. 编译工作空间 B
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b
 source /opt/ros/noetic/setup.bash
 catkin_make
 ```
@@ -106,7 +106,7 @@ catkin_make
 加载工作空间 B 环境：
 
 ```bash
-source ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/devel/setup.bash
+source ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/devel/setup.bash
 ```
 
 验证工作空间 B 的 `usb_cam`：
@@ -118,7 +118,7 @@ rospack find usb_cam
 此时应输出类似：
 
 ```text
-/home/用户名/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src/usb_cam
+/home/用户名/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src/usb_cam
 ```
 
 这一步证明工作空间 B 中下载的源码包可以被 ROS 找到。
@@ -170,7 +170,7 @@ pwd
 如果输出类似：
 
 ```text
-/home/用户名/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src/usb_cam
+/home/用户名/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src/usb_cam
 ```
 
 说明当前终端加载了工作空间 B。
@@ -197,7 +197,7 @@ pwd
 建议按以下顺序录屏：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二
 ls
 ```
 
@@ -211,7 +211,7 @@ ls ws_b/src
 展示工作空间 A 中创建的 `usb_cam`：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_a/src/usb_cam
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_a/src/usb_cam
 pwd
 ls
 ```
@@ -219,7 +219,7 @@ ls
 展示工作空间 B 中下载的 `usb_cam`：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务二/ws_b/src/usb_cam
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务二/ws_b/src/usb_cam
 pwd
 ls
 ```
@@ -248,7 +248,7 @@ pwd
 ## 11. 提交结构
 
 ```text
-学校名称_队伍名称_轮式组/
+学校名称_队伍名称_足式组/
 ├── 第三部分/
 │   └── 任务二/
 │       ├── ws_a/

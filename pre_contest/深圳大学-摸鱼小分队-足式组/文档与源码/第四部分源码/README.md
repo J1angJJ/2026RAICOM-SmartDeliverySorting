@@ -569,7 +569,7 @@ rosrun raicom_nav write_zu_nav.py
 所有视频左下角需要显示：
 
 ```text
-学校名称 + 队伍名称 + 轮式组
+学校名称 + 队伍名称 + 足式组
 ```
 
 ## 8. 复制到提交目录
@@ -577,49 +577,49 @@ rosrun raicom_nav write_zu_nav.py
 创建提交目录：
 
 ```bash
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务一
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务三/视频
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第四部分源码/raicom_nav_ws/src
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务一
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务二
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务三/视频
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/文档与源码/第四部分源码/raicom_nav_ws/src
 ```
 
 复制任务一地图：
 
 ```bash
 cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map.yaml \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务一/
+  ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务一/
 
 cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task1_map.pgm \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务一/
+  ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务一/
 ```
 
 复制任务二文件：
 
 ```bash
 cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/launch/task2_mapping_save.launch \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
+  ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务二/
 
 cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task2_cylinder_map.yaml \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
+  ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务二/
 
 cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/maps/task2_cylinder_map.pgm \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
+  ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务二/
 
 cp /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav/screenshots/task2_cylinders.jpg \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/第四部分/任务二/
+  ~/raicom_submit/学校名称_队伍名称_足式组/第四部分/任务二/
 ```
 
 复制源码：
 
 ```bash
 cp -a /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav \
-  ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第四部分源码/raicom_nav_ws/src/
+  ~/raicom_submit/学校名称_队伍名称_足式组/文档与源码/第四部分源码/raicom_nav_ws/src/
 ```
 
 ## 9. 最终提交结构
 
 ```text
-学校名称_队伍名称_轮式组/
+学校名称_队伍名称_足式组/
 ├── 第四部分/
 │   ├── 任务一/
 │   │   ├── task1_map.yaml
@@ -652,7 +652,7 @@ cp -a /home/noetic/raicom_nav_work/raicom_nav_ws/src/raicom_nav \
 - 任务二已提交三个圆柱的 Gazebo 截图。
 - 任务三源码 `write_zu_nav.py` 可运行。
 - RViz 中小车轨迹能形成“足”字。
-- 视频左下角包含学校名称、队伍名称和轮式组。
+- 视频左下角包含学校名称、队伍名称和足式组。
 - 单个视频不超过 5 分钟。
 - 视频没有加速。
 ```

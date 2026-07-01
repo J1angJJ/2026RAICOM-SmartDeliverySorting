@@ -1,4 +1,4 @@
-# 第三部分任务一：乌龟轨迹 rosbag 录制与播放复现步骤
+﻿# 第三部分任务一：乌龟轨迹 rosbag 录制与播放复现步骤
 
 本文档用于在 Ubuntu + ROS 环境中复现第三部分任务一。任务要求使用 `turtlesim` 控制小乌龟运动，并使用 `rosbag` 录制一个名为 `run.bag` 的轨迹文件，最后播放该 bag 文件验证轨迹可以复现。
 
@@ -19,21 +19,21 @@
 ## 2. 创建任务目录
 
 ```bash
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第三部分源码/任务一
-mkdir -p ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务一/视频
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务一
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/文档与源码/第三部分源码/任务一
+mkdir -p ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务一/视频
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务一
 ```
 
 `run.bag` 最终建议放在：
 
 ```text
-~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务一/run.bag
+~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务一/run.bag
 ```
 
 README 放在：
 
 ```text
-~/raicom_submit/学校名称_队伍名称_轮式组/文档与源码/第三部分源码/任务一/README.md
+~/raicom_submit/学校名称_队伍名称_足式组/文档与源码/第三部分源码/任务一/README.md
 ```
 
 ## 3. 检查 ROS 环境
@@ -123,7 +123,7 @@ rostopic list
 进入任务一提交目录：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务一
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务一
 ```
 
 开始录制：
@@ -207,7 +207,7 @@ rosservice call /clear
 在任务一目录中执行：
 
 ```bash
-cd ~/raicom_submit/学校名称_队伍名称_轮式组/第三部分/任务一
+cd ~/raicom_submit/学校名称_队伍名称_足式组/第三部分/任务一
 rosbag play run.bag
 ```
 
@@ -246,7 +246,7 @@ rosbag play --clock run.bag
 3. run.bag 文件已经生成。
 4. rosbag info 能看到录制话题。
 5. rosbag play 后轨迹可以复现。
-6. 视频左下角显示：学校名称 + 队伍名称 + 轮式组。
+6. 视频左下角显示：学校名称 + 队伍名称 + 足式组。
 7. 录屏不超过 5 分钟，不加速。
 ```
 
@@ -255,7 +255,7 @@ rosbag play --clock run.bag
 第三部分任务一最终提交结构建议如下：
 
 ```text
-学校名称_队伍名称_轮式组/
+学校名称_队伍名称_足式组/
 ├── 第三部分/
 │   └── 任务一/
 │       ├── 视频/
@@ -307,6 +307,6 @@ sudo apt install -y ros-noetic-rosbag
 - `rosbag info run.bag` 能看到 `/turtle1/cmd_vel`。
 - `rosbag play run.bag` 能复现小乌龟运动轨迹。
 - 视频中展示录制过程和播放过程。
-- 视频左下角包含学校名称、队伍名称和轮式组。
+- 视频左下角包含学校名称、队伍名称和足式组。
 - 录屏不超过 5 分钟。
 - 录屏没有加速。
