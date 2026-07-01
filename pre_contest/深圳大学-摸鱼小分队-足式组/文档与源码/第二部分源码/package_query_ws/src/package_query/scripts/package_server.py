@@ -20,14 +20,25 @@ PACKAGE_DATABASE = {
 
 def handle_query(req):
     item = req.item.strip()
+    rospy.loginfo("收到查询请求，物品名称：%s", item)
 
     if item in PACKAGE_DATABASE:
         category = PACKAGE_DATABASE[item]
         message = "物品：{}，包裹类别：{}".format(item, category)
+        print("-" * 36, flush=True)
+        print("收到 rosservice call 查询请求", flush=True)
+        print("查询物品：{}".format(item), flush=True)
+        print("查询结果：{}".format(message), flush=True)
+        print("-" * 36, flush=True)
         rospy.loginfo(message)
         return QueryPackageResponse(category, message, True)
 
     message = "未查询到物品：{}".format(item)
+    print("-" * 36, flush=True)
+    print("收到 rosservice call 查询请求", flush=True)
+    print("查询物品：{}".format(item), flush=True)
+    print("查询结果：{}".format(message), flush=True)
+    print("-" * 36, flush=True)
     rospy.logwarn(message)
     return QueryPackageResponse("未知", message, False)
 

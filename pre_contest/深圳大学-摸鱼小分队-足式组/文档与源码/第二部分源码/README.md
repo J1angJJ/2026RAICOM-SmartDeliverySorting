@@ -159,14 +159,25 @@ PACKAGE_DATABASE = {
 
 def handle_query(req):
     item = req.item.strip()
+    rospy.loginfo("收到查询请求，物品名称：%s", item)
 
     if item in PACKAGE_DATABASE:
         category = PACKAGE_DATABASE[item]
         message = "物品：{}，包裹类别：{}".format(item, category)
+        print("-" * 36, flush=True)
+        print("收到 rosservice call 查询请求", flush=True)
+        print("查询物品：{}".format(item), flush=True)
+        print("查询结果：{}".format(message), flush=True)
+        print("-" * 36, flush=True)
         rospy.loginfo(message)
         return QueryPackageResponse(category, message, True)
 
     message = "未查询到物品：{}".format(item)
+    print("-" * 36, flush=True)
+    print("收到 rosservice call 查询请求", flush=True)
+    print("查询物品：{}".format(item), flush=True)
+    print("查询结果：{}".format(message), flush=True)
+    print("-" * 36, flush=True)
     rospy.logwarn(message)
     return QueryPackageResponse("未知", message, False)
 
@@ -204,33 +215,48 @@ import sys
 import rospy
 from package_query.srv import QueryPackage
 
+def call_service(query_package, item):
+    response = query_package(item)
+
+    print("-" * 30)
+    print("客户端发送物品：{}".format(item))
+    if response.success:
+        print("查询成功")
+        print("服务端返回类别：{}".format(response.category))
+        print("输出结果：{}".format(response.message))
+    else:
+        print("查询失败")
+        print("服务端返回信息：{}".format(response.message))
+    print("-" * 30)
+
 def main():
     rospy.init_node("package_query_client")
 
-    if len(sys.argv) < 2:
-        print("用法：rosrun package_query package_client.py 物品名称")
-        print("示例：rosrun package_query package_client.py 卫生纸")
-        return
-
-    item = sys.argv[1]
-    rospy.wait_for_service("query_package")
+    try:
+        rospy.wait_for_service("query_package", timeout=5.0)
+    except rospy.ROSException:
+        print("错误：无法连接到服务端，请确认 package_server.py 已经运行。")
+        sys.exit(1)
 
     try:
         query_package = rospy.ServiceProxy("query_package", QueryPackage)
-        response = query_package(item)
 
-        if response.success:
-            print("查询成功")
-            print("客户端发送物品：{}".format(item))
-            print("服务端返回类别：{}".format(response.category))
-            print("输出结果：{}".format(response.message))
+        if len(sys.argv) > 1:
+            print("【模式：命令行传参】")
+            call_service(query_package, sys.argv[1])
         else:
-            print("查询失败")
-            print("客户端发送物品：{}".format(item))
-            print("服务端返回信息：{}".format(response.message))
+            print("【模式：交互式查询】")
+            print("提示：输入物品名称进行查询，输入 q 或 Ctrl+C 退出。")
+            while not rospy.is_shutdown():
+                item = input("\n请输入要查询的物品：").strip()
+                if item.lower() == "q":
+                    print("退出查询程序。")
+                    break
+                if item:
+                    call_service(query_package, item)
 
-    except rospy.ServiceException as e:
-        print("服务调用失败：{}".format(e))
+    except rospy.ServiceException as exc:
+        print("服务调用失败：{}".format(exc))
 
 if __name__ == "__main__":
     main()
@@ -242,7 +268,44 @@ if __name__ == "__main__":
 chmod +x scripts/package_client.py
 ```
 
-## 9. 编译工作空间
+## 9. 添加 rosservice 中文输出过滤器
+
+`rosservice call` 使用 ROS/YAML 序列化输出中文时，终端里可能显示成 `\uXXXX`。为保证录屏里能直接看到中文，增加一个只负责把标准输入中的 Unicode 转义转回中文的小脚本：
+
+```bash
+gedit scripts/rosservice_utf8.py
+```
+
+写入：
+
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import re
+import sys
+
+def decode_ros_unicode(text):
+    return re.sub(
+        r"\\u([0-9a-fA-F]{4})",
+        lambda match: chr(int(match.group(1), 16)),
+        text,
+    )
+
+def main():
+    sys.stdout.write(decode_ros_unicode(sys.stdin.read()))
+
+if __name__ == "__main__":
+    main()
+```
+
+赋予执行权限：
+
+```bash
+chmod +x scripts/rosservice_utf8.py
+```
+
+## 10. 编译工作空间
 
 回到工作空间根目录：
 
@@ -264,7 +327,7 @@ echo "source ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸�
 source ~/.bashrc
 ```
 
-## 10. 启动服务端
+## 11. 启动服务端
 
 第一个终端：
 
@@ -285,7 +348,7 @@ rosrun package_query package_server.py
 包裹类别查询服务已启动，服务名：/query_package
 ```
 
-## 11. 使用 rosservice call 测试任务一
+## 12. 使用 rosservice call 测试任务一
 
 第三个终端：
 
@@ -303,7 +366,7 @@ rosservice list
 调用服务：
 
 ```bash
-rosservice call /query_package "item: '卫生纸'"
+rosservice call /query_package "item: '卫生纸'" | rosrun package_query rosservice_utf8.py
 ```
 
 正确输出示例：
@@ -317,12 +380,12 @@ success: True
 继续测试：
 
 ```bash
-rosservice call /query_package "item: '香蕉'"
-rosservice call /query_package "item: '电视机'"
-rosservice call /query_package "item: '空调'"
+rosservice call /query_package "item: '香蕉'" | rosrun package_query rosservice_utf8.py
+rosservice call /query_package "item: '电视机'" | rosrun package_query rosservice_utf8.py
+rosservice call /query_package "item: '空调'" | rosrun package_query rosservice_utf8.py
 ```
 
-## 12. 运行客户端测试任务二
+## 13. 运行客户端测试任务二
 
 服务端保持运行，第三个终端执行：
 
@@ -334,10 +397,13 @@ rosrun package_query package_client.py 卫生纸
 正确输出示例：
 
 ```text
-查询成功
+【模式：命令行传参】
+------------------------------
 客户端发送物品：卫生纸
+查询成功
 服务端返回类别：日用品
 输出结果：物品：卫生纸，包裹类别：日用品
+------------------------------
 ```
 
 继续测试：
@@ -350,7 +416,13 @@ rosrun package_query package_client.py 冰箱
 rosrun package_query package_client.py 空调
 ```
 
-## 13. 录屏建议
+不带参数运行时进入交互式查询：
+
+```bash
+rosrun package_query package_client.py
+```
+
+## 14. 录屏建议
 
 录屏时建议按以下顺序演示：
 
@@ -360,7 +432,7 @@ rosrun package_query package_client.py 空调
 3. source devel/setup.bash。
 4. 启动 roscore。
 5. 启动服务端 package_server.py。
-6. 使用 rosservice call /query_package 测试卫生纸、香蕉、电视机。
+6. 使用 `rosservice call /query_package ... | rosrun package_query rosservice_utf8.py` 测试卫生纸、香蕉、电视机。
 7. 使用客户端 package_client.py 测试苹果、冰箱、空调。
 8. 展示终端中文输出。
 ```
@@ -375,7 +447,7 @@ rosrun package_query package_client.py 空调
 5. 录屏不超过 5 分钟，不加速。
 ```
 
-## 14. 第二部分提交结构
+## 15. 第二部分提交结构
 
 ```text
 深圳大学-摸鱼小分队-足式组/
@@ -396,15 +468,16 @@ rosrun package_query package_client.py 空调
                     │   └── QueryPackage.srv
                     └── scripts/
                         ├── package_server.py
-                        └── package_client.py
+                        ├── package_client.py
+                        └── rosservice_utf8.py
 ```
 
 ## 15. 提交前检查
 
 - `catkin_make` 可以正常编译。
 - `/query_package` 服务可以正常启动。
-- `rosservice call` 能返回正确类别。
-- 客户端可以接收命令行参数。
+- `rosservice call` 结合 `rosservice_utf8.py` 能显示中文类别和提示信息。
+- 客户端可以接收命令行参数，也可以进入交互式查询。
 - 客户端中文输出格式清晰。
 - 视频中能看到服务端、客户端和测试结果。
 - 录屏不超过 5 分钟，且没有加速。
