@@ -23,6 +23,14 @@ git clone https://github.com/ros-drivers/usb_cam.git
 
 如比赛环境要求指定分支，应以现场可编译的 ROS Noetic 版本为准。
 
+将目录同步回主仓库后，提交前删除 `usb_cam` 自带的嵌套 Git 元数据，否则主仓库只会记录一个仓库引用，而不是完整源码：
+
+```bash
+rm -rf ws_b/src/usb_cam/.git
+```
+
+该命令只删除下载源码内部的版本记录，不删除 `usb_cam` 源码文件。
+
 ## 安装系统版本
 
 ```bash
