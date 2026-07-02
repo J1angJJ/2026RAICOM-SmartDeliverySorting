@@ -2,11 +2,31 @@ name: cv-train
 channels:
   - defaults
 dependencies:
-  - python=3.11
-  - pip
+  - python=3.11.15
+  - pip=26.0.1
+  - wheel=0.46.3
   - pip:
-      - ultralytics
-      - opencv-python
-      - pyyaml
-      - pillow
-      - numpy
+      - setuptools==70.2.0
+      # PyTorch CUDA 12.6 wheels used by the verified Windows training environment.
+      - --extra-index-url https://download.pytorch.org/whl/cu126
+      - torch==2.12.0+cu126
+      - torchvision==0.27.0+cu126
+      - ultralytics==8.4.54
+      - ultralytics-thop==2.0.19
+      - opencv-python==4.13.0.92
+      - numpy==2.4.4
+      - pillow==12.2.0
+      - pyyaml==6.0.3
+      - pandas==3.0.3
+      - scipy==1.17.1
+      - matplotlib==3.10.9
+      - seaborn==0.13.2
+      - psutil==7.0.0
+      - py-cpuinfo==9.0.0
+      - tqdm==4.67.3
+      - requests==2.34.2
+      - tensorboard==2.20.0
+      # Retained for model validation/export workflows.
+      - onnx==1.21.0
+      - onnxruntime==1.26.0
+      - onnxslim==0.1.94

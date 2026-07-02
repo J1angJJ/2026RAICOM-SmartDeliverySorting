@@ -31,6 +31,24 @@
 
 数据集、采集图片、训练输出和模型权重不进入 git。
 
+## Windows 训练环境
+
+训练环境按已验证的 `cv-train` 环境锁定，使用 Python 3.11、CUDA 12.6 版 PyTorch 和 Ultralytics。请在 Windows **CMD** 中从第一部分源码目录执行：
+
+```cmd
+conda env create -f train\environment.yml
+conda activate cv-train
+python -c "import torch, ultralytics; print(torch.__version__, torch.version.cuda, torch.cuda.is_available(), ultralytics.__version__)"
+```
+
+预期输出包含 `2.12.0+cu126`、`12.6`、`True` 和 `8.4.54`。如果本机已存在该环境，使用：
+
+```cmd
+conda env update -n cv-train -f train\environment.yml --prune
+```
+
+环境文件只记录本任务训练、验证和模型导出所需组件，不包含本机通用视觉环境中的 Jupyter、FiftyOne、Transformers 等无关工具。
+
 ## 类别顺序
 
 训练、标注、推理必须保持以下顺序：
