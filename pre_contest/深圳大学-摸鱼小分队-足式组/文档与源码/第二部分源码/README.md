@@ -9,7 +9,7 @@
 | 任务 | 内容 | 分值 |
 | --- | --- | --- |
 | 任务一 | 编写服务端，使用 `rosservice call` 能看到正确输出 | 5 分 |
-| 任务二 | 编写客户端，传入参数并输出服务返回结果 | 10 分 |
+| 任务二 | 编写交互式客户端，输入物品并输出服务返回结果 | 10 分 |
 
 ## 2. 工作空间路径
 
@@ -385,42 +385,26 @@ rosservice call /query_package "item: '电视机'" | rosrun package_query rosser
 rosservice call /query_package "item: '空调'" | rosrun package_query rosservice_utf8.py
 ```
 
-## 13. 运行客户端测试任务二
+## 13. 运行交互式客户端测试任务二
 
 服务端保持运行，第三个终端执行：
 
 ```bash
-source ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第二部分源码/package_query_ws/devel/setup.bash
-rosrun package_query package_client.py 卫生纸
-```
-
-正确输出示例：
-
-```text
-【模式：命令行传参】
-------------------------------
-客户端发送物品：卫生纸
-查询成功
-服务端返回类别：日用品
-输出结果：物品：卫生纸，包裹类别：日用品
-------------------------------
-```
-
-继续测试：
-
-```bash
-rosrun package_query package_client.py 香蕉
-rosrun package_query package_client.py 苹果
-rosrun package_query package_client.py 电视机
-rosrun package_query package_client.py 冰箱
-rosrun package_query package_client.py 空调
-```
-
-不带参数运行时进入交互式查询：
-
-```bash
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第二部分源码/package_query_ws
+source devel/setup.bash
 rosrun package_query package_client.py
 ```
+
+客户端出现提示后依次输入：
+
+```text
+衣服
+苹果
+空调
+q
+```
+
+每次查询应显示客户端发送物品、查询状态、服务端返回类别和中文完整结果；输入 `q` 后正常退出。
 
 ## 14. 录屏建议
 
@@ -433,7 +417,7 @@ rosrun package_query package_client.py
 4. 启动 roscore。
 5. 启动服务端 package_server.py。
 6. 使用 `rosservice call /query_package ... | rosrun package_query rosservice_utf8.py` 测试卫生纸、香蕉、电视机。
-7. 使用客户端 package_client.py 测试苹果、冰箱、空调。
+7. 无参数启动 package_client.py，在交互模式中依次查询衣服、苹果、空调，输入 q 退出。
 8. 展示终端中文输出。
 ```
 
@@ -441,9 +425,9 @@ rosrun package_query package_client.py
 
 ```text
 1. rosservice call 正确返回数据。
-2. 客户端可以传入物品参数。
+2. 客户端进入交互模式并接受多次物品输入。
 3. 客户端终端按格式输出服务端返回结果。
-4. 视频左下角显示：学校名称 + 队伍名称 + 足式组。
+4. 视频左下角显示：深圳大学 摸鱼小分队 足式组。
 5. 录屏不超过 5 分钟，不加速。
 ```
 
@@ -472,12 +456,12 @@ rosrun package_query package_client.py
                         └── rosservice_utf8.py
 ```
 
-## 15. 提交前检查
+## 16. 提交前检查
 
 - `catkin_make` 可以正常编译。
 - `/query_package` 服务可以正常启动。
 - `rosservice call` 结合 `rosservice_utf8.py` 能显示中文类别和提示信息。
-- 客户端可以接收命令行参数，也可以进入交互式查询。
+- 客户端无参数启动后可以进入交互式查询，并连续处理多个物品。
 - 客户端中文输出格式清晰。
 - 视频中能看到服务端、客户端和测试结果。
 - 录屏不超过 5 分钟，且没有加速。
