@@ -12,7 +12,7 @@
     └── src/               # 在虚拟机中下载 usb_cam
 ```
 
-仓库跟踪 `ws_a` 和 `ws_b` 的工作空间结构。`ws_b/src/usb_cam` 按比赛流程在虚拟机中下载，不进入 Git。
+仓库跟踪 `ws_a`、`ws_b` 的工作空间结构以及 `ws_b/src/usb_cam` 下载源码，确保提交材料完整。`build/`、`devel/`、日志等编译产物仍不进入 Git。
 
 ## 准备工作空间 B
 

@@ -55,9 +55,6 @@ logs/
 .ros/
 catkin_generated/
 
-# 第三部分任务二 ws_b 的 usb_cam 按题目流程在虚拟机现场下载，不进入仓库。
-pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第三部分源码/任务二/ws_b/src/usb_cam/
-
 # ===== ROS 2 colcon 工作空间 =====
 .colcon/
 build_isolated/
@@ -84,6 +81,8 @@ training_workspace/
 **/training_workspace/
 *.bag
 *.bag.active
+# 第三部分任务一的正式录制文件属于比赛提交材料，需要进入仓库。
+!/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第三部分源码/任务一/run.bag
 *.db3
 *.mcap
 *.sqlite3
