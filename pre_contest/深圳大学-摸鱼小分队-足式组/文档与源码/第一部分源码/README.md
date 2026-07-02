@@ -16,7 +16,8 @@
 │   ├── classify_camera.py           # 分类模型推理，备份
 │   ├── camera_utils.py
 │   ├── pack_capture.sh              # 打包采集数据
-│   ├── environment.yml
+│   ├── environment.yml              # 可直接创建的 Conda 推理环境
+│   ├── environment_vm_freeze.txt    # 已验证虚拟机的完整环境快照
 │   └── models/
 │       └── best.pt                  # 检测权重，手动放入，不进 git
 └── train/                           # Windows 本机使用
