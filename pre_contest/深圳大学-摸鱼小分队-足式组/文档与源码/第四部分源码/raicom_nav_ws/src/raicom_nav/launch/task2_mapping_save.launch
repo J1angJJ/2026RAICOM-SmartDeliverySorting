@@ -2,7 +2,8 @@
   <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
   <arg name="gui" default="true"/>
   <arg name="save_delay" default="60"/>
-  <arg name="map_name" default="$(find raicom_nav)/maps/task2_map"/>
+  <arg name="package_root" default="$(env HOME)/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第四部分源码/raicom_nav_ws/src/raicom_nav"/>
+  <arg name="map_name" default="$(arg package_root)/maps/task2_map"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="paused" value="false"/>
