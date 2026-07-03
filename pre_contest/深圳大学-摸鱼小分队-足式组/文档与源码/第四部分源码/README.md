@@ -22,10 +22,15 @@ raicom_nav_ws/src/raicom_nav/
 │   ├── task2_map.yaml
 │   └── task2_map.pgm
 ├── rviz/task3_zu_nav.rviz
+├── worlds/
+│   ├── task1_walls.world
+│   └── task2_cylinders.world
 └── scripts/
     ├── spawn_arena.py
     └── write_zu_nav.py
 ```
+
+`worlds/` 中保存了与动态生成脚本参数一致的完整 Gazebo 场景，便于单独检查和提交；当前三个 launch 仍使用动态生成方式，避免改变已验证的运行流程。
 
 ## 统一准备
 
@@ -92,15 +97,23 @@ ls -lh src/raicom_nav/maps/task2_map.{yaml,pgm}
 
 视频应展示 Gazebo 中的三个圆柱、RViz 地图、launch 自动保存信息和地图文件，并另存三个圆柱清晰可见的截图。
 
-## 任务三：自动导航写“足”字
+## 任务三：导航写“足”字
 
-任务三 launch 会启动 Gazebo、任务一地图、move_base、专用 RViz 配置与写字脚本，并自动发布初始位姿。
+终端 1 启动 Gazebo、任务一地图、move_base 和专用 RViz：
 
 ```bash
 cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第四部分源码/raicom_nav_ws
 source devel/setup.bash
 export TURTLEBOT3_MODEL=burger
-roslaunch raicom_nav task3_navigation.launch gui:=true rviz:=true auto_start:=true start_delay:=20
+roslaunch raicom_nav task3_navigation.launch gui:=true rviz:=true
+```
+
+在 RViz 中使用 `2D Pose Estimate` 设置初始位姿后，终端 2 运行写字节点：
+
+```bash
+cd ~/2026-raicom-smart-delivery-sorting/pre_contest/深圳大学-摸鱼小分队-足式组/文档与源码/第四部分源码/raicom_nav_ws
+source devel/setup.bash
+rosrun raicom_nav write_zu_nav.py
 ```
 
 RViz 中 `ActualPath` 订阅 `/zu_actual_path`。等待轨迹执行完成并形成“足”字，最终画面停留至少 5 秒。
@@ -115,6 +128,7 @@ export LIBGL_ALWAYS_SOFTWARE=1
 
 - 任务一生成 `task1_map.yaml` 和 `task1_map.pgm`。
 - 任务二生成 `task2_map.yaml` 和 `task2_map.pgm`，并保留三个圆柱截图及自动保存 launch。
-- 任务三能够自动运行，RViz 实际轨迹形成“足”字。
+- 任务三能够加载任务一地图，RViz 实际轨迹形成“足”字。
+- `worlds/` 中两份场景文件已随源码提交。
 - 三个任务的视频左下角均显示“深圳大学 摸鱼小分队 足式组”。
 - 每个视频不超过 5 分钟且不加速。
