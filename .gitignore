@@ -115,6 +115,10 @@ core.*
 # 从正式工作区复制出的待提交目录只在本机整理，不进入开发仓库。
 /pre_contest/submission/
 
+# ===== 外部参考工程 =====
+# 其他设备移植来的相似工程，只作人工参考；环境和边缘设备可能不一致。
+/reference/
+
 # ===== 临时文件 =====
 tmp/
 temp/
@@ -125,6 +129,10 @@ temp/
 /private/
 private_robot_access.yaml
 **/private_robot_access.yaml
+
+# ===== 本地开发记录 =====
+/docs/development_log.md
+/docs/robot_offline_snapshot_*/
 
 # ===== Claude Code =====
 CLAUDE.md
