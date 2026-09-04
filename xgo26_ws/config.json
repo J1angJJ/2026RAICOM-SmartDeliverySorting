@@ -1,0 +1,116 @@
+{
+  "robot": {
+    "serial_port": "/dev/ttyAMA0",
+    "model": "auto"
+  },
+  "camera": {
+    "index": 0,
+    "width": 640,
+    "height": 480,
+    "warmup_frames": 5
+  },
+  "models": {
+    "package_model": "models/package_letter.onnx",
+    "letter_model": "models/ABCD.onnx"
+  },
+  "detection": {
+    "confidence": 0.45,
+    "iou": 0.45,
+    "frames": 3
+  },
+  "mission": {
+    "expected_tasks": [
+      {
+        "letter": "A",
+        "package": "toothbrush"
+      },
+      {
+        "letter": "C",
+        "package": "banana"
+      }
+    ],
+    "routes": {
+      "start_to_recognition_1": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "recognition_1_to_recognition_2": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "recognition_2_to_pick_area": [
+        {
+          "kind": "turn_to",
+          "yaw": -90,
+          "note": "占位路线，待实地标定"
+        },
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "drop_A": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "drop_B": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "drop_C": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "drop_D": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": 12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ],
+      "return_to_pick_area": [
+        {
+          "kind": "move",
+          "axis": "x",
+          "speed": -12,
+          "seconds": 1.0,
+          "note": "占位路线，待实地标定"
+        }
+      ]
+    }
+  },
+  "ball_thresholds_lab": {
+    "red": [0, 255, 150, 255, 33, 159],
+    "blue": [0, 255, 126, 255, 0, 122]
+  }
+}
