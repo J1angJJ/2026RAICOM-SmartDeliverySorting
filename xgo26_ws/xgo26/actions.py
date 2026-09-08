@@ -4,7 +4,7 @@ import time
 
 from .camera import capture_frame
 from .motion import Motion
-from .perception import DeliveryTask, find_colored_ball, normalize_center
+from .perception import BallDetection, DeliveryTask, detect_colored_ball
 from .robot import Robot
 
 
@@ -22,48 +22,94 @@ def grasp_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
         time.sleep(0.2)
         return True
 
-    thresholds = config["ball_thresholds_lab"]
-    if color not in thresholds:
-        raise ValueError(f"未配置小球颜色阈值: {color}")
+    prepare_for_grasp(robot)
+    aligned = align_ball(robot, motion, color, config)
+    if aligned:
+        grasp_once(robot)
+        return True
 
+    print("[action] grasp fallback sequence")
+    grasp_once(robot)
+    return False
+
+
+def prepare_for_grasp(robot: Robot) -> None:
     robot.reset()
     robot.attitude("p", 15)
     time.sleep(0.5)
 
+
+def detect_ball_once(color: str, config: dict) -> tuple[bool, BallDetection | None]:
+    thresholds = config["ball_thresholds_lab"]
+    if color not in thresholds:
+        raise ValueError(f"未配置小球颜色阈值: {color}")
+
     camera_cfg = config["camera"]
+    grasp_cfg = config.get("grasp", {})
+    ok, frame = capture_frame(
+        camera_index=int(camera_cfg.get("index", 0)),
+        width=int(grasp_cfg.get("camera_width", 320)),
+        height=int(grasp_cfg.get("camera_height", 240)),
+        warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
+    )
+    if not ok:
+        return False, None
+    return True, detect_colored_ball(frame, color, thresholds[color])
+
+
+def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
+    thresholds = config["ball_thresholds_lab"]
+    if color not in thresholds:
+        raise ValueError(f"未配置小球颜色阈值: {color}")
+
+    camera_cfg = config["camera"]
+    grasp_cfg = config.get("grasp", {})
     threshold = thresholds[color]
-    for index in range(40):
+    target_x = float(grasp_cfg.get("target_x", 0.0))
+    target_y = float(grasp_cfg.get("target_y", -0.85))
+    tolerance_x = float(grasp_cfg.get("tolerance_x", 0.15))
+    tolerance_y = float(grasp_cfg.get("tolerance_y", 0.18))
+    max_steps = int(grasp_cfg.get("max_align_steps", 40))
+    min_seconds = float(grasp_cfg.get("min_step_seconds", 0.4))
+    max_seconds = float(grasp_cfg.get("max_step_seconds", 1.2))
+    yaw_every = int(grasp_cfg.get("yaw_correction_every", 5))
+
+    for index in range(max_steps):
         ok, frame = capture_frame(
             camera_index=int(camera_cfg.get("index", 0)),
-            width=320,
-            height=240,
-            warmup_frames=2,
+            width=int(grasp_cfg.get("camera_width", 320)),
+            height=int(grasp_cfg.get("camera_height", 240)),
+            warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
         )
         if not ok:
             print("[action] camera failed while grasping")
             break
-        found = find_colored_ball(frame, threshold)
-        if found is None:
+        detection = detect_colored_ball(frame, color, threshold)
+        if detection is None:
             print("[action] ball not found, move forward")
-            robot.move("x", 12, 0.7)
+            robot.move("x", float(grasp_cfg.get("search_speed", 12)), 0.7)
             continue
 
-        x, y, radius = found
-        h, w = frame.shape[:2]
-        nx, ny = normalize_center(x, y, w, h)
-        print(f"[action] ball center=({nx:.2f}, {ny:.2f}), radius={radius}")
-        if abs(nx) < 0.15 and abs(ny + 0.85) < 0.18:
-            _grasp_sequence(robot)
+        print(f"[action] {detection.summary()}")
+        if detection.centered(target_x, target_y, tolerance_x, tolerance_y):
             return True
-        if abs(nx) >= 0.15:
-            robot.move("y", 10 if nx < 0 else -10, min(1.2, max(0.4, abs(nx))))
+
+        err_x = detection.normalized_x - target_x
+        err_y = detection.normalized_y - target_y
+        if abs(err_x) >= tolerance_x:
+            seconds = min(max_seconds, max(min_seconds, abs(err_x)))
+            speed = float(grasp_cfg.get("lateral_speed", 10))
+            robot.move("y", speed if err_x < 0 else -speed, seconds)
         else:
-            robot.move("x", -10 if ny < -0.85 else 12, min(1.2, max(0.4, abs(ny + 0.85))))
-        if index % 5 == 4:
+            seconds = min(max_seconds, max(min_seconds, abs(err_y)))
+            if err_y < 0:
+                speed = float(grasp_cfg.get("backward_speed", -10))
+            else:
+                speed = float(grasp_cfg.get("forward_speed", 12))
+            robot.move("x", speed, seconds)
+        if yaw_every > 0 and index % yaw_every == yaw_every - 1:
             motion.turn_to(0)
 
-    print("[action] grasp fallback sequence")
-    _grasp_sequence(robot)
     return False
 
 
@@ -90,7 +136,7 @@ def speak_task(task: DeliveryTask, dry_run: bool = False) -> None:
         print(f"[speak] speaker unavailable: {exc}")
 
 
-def _grasp_sequence(robot: Robot) -> None:
+def grasp_once(robot: Robot) -> None:
     robot.claw(0)
     robot.translation("x", 20)
     robot.motor(52, -55)
@@ -124,4 +170,3 @@ def _place_sequence(robot: Robot) -> None:
     time.sleep(1.5)
     robot.reset()
     time.sleep(0.5)
-

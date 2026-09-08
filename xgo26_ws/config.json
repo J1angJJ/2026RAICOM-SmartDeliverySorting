@@ -1,7 +1,13 @@
 {
   "robot": {
     "serial_port": "/dev/ttyAMA0",
-    "model": "auto"
+    "model": "auto",
+    "control": {
+      "disable_wheel_control": true,
+      "load_all_motors": true,
+      "gait_type": "slow_trot",
+      "pace": "normal"
+    }
   },
   "camera": {
     "index": 0,
@@ -32,20 +38,71 @@
     "routes": {
       "start_to_recognition_1": [
         {
-          "kind": "move",
-          "axis": "x",
-          "speed": 12,
-          "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "kind": "line_follow",
+          "speed": 10,
+          "seconds": 4.0,
+          "turn_gain": 45,
+          "max_turn": 35,
+          "lost_speed": 0,
+          "lost_turn": 0,
+          "max_lost_frames": 12,
+          "camera": {
+            "index": 0,
+            "width": 320,
+            "height": 240,
+            "warmup_frames": 5
+          },
+          "line": {
+            "roi_top_ratio": 0.55,
+            "adaptive": true,
+            "adaptive_block_size": 21,
+            "adaptive_c": 5,
+            "kernel_size": 5,
+            "min_area": 120
+          },
+          "note": "沿地面循迹线到第一个识别点，时长待场地标定"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": -45,
+          "note": "到点后转向识别KT板，角度待标定"
         }
       ],
       "recognition_1_to_recognition_2": [
         {
-          "kind": "move",
-          "axis": "x",
-          "speed": 12,
-          "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "kind": "turn_to",
+          "yaw": 0,
+          "note": "识别后回正到循迹方向"
+        },
+        {
+          "kind": "line_follow",
+          "speed": 10,
+          "seconds": 4.0,
+          "turn_gain": 45,
+          "max_turn": 35,
+          "lost_speed": 0,
+          "lost_turn": 0,
+          "max_lost_frames": 12,
+          "camera": {
+            "index": 0,
+            "width": 320,
+            "height": 240,
+            "warmup_frames": 5
+          },
+          "line": {
+            "roi_top_ratio": 0.55,
+            "adaptive": true,
+            "adaptive_block_size": 21,
+            "adaptive_c": 5,
+            "kernel_size": 5,
+            "min_area": 120
+          },
+          "note": "沿地面循迹线到第二个识别点，时长待场地标定"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": -45,
+          "note": "到点后转向识别KT板，角度待标定"
         }
       ],
       "recognition_2_to_pick_area": [
@@ -112,5 +169,30 @@
   "ball_thresholds_lab": {
     "red": [0, 255, 150, 255, 33, 159],
     "blue": [0, 255, 126, 255, 0, 122]
+  },
+  "grasp": {
+    "camera_width": 320,
+    "camera_height": 240,
+    "warmup_frames": 2,
+    "target_x": 0.0,
+    "target_y": -0.85,
+    "tolerance_x": 0.15,
+    "tolerance_y": 0.18,
+    "max_align_steps": 40,
+    "search_speed": 12,
+    "lateral_speed": 10,
+    "forward_speed": 12,
+    "backward_speed": -10,
+    "min_step_seconds": 0.4,
+    "max_step_seconds": 1.2,
+    "yaw_correction_every": 5,
+    "debug_dir": "logs/ball_debug"
+  },
+  "square_test": {
+    "side_cm": 50,
+    "speed": 18,
+    "turn_direction": "left",
+    "settle_seconds": 0.5,
+    "use_builtin_distance": true
   }
 }

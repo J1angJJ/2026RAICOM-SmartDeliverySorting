@@ -24,6 +24,23 @@ class Robot:
         self._call("reset")
         time.sleep(0.5)
 
+    def initialize_control_mode(self, config: dict | None = None) -> None:
+        cfg = config or {}
+        print("[robot] initialize control mode")
+        self.stop()
+        if cfg.get("disable_wheel_control", True):
+            self.enable_wheel_control(0)
+        if cfg.get("load_all_motors", True):
+            self.load_allmotor()
+        gait = cfg.get("gait_type")
+        if gait:
+            self.gait_type(str(gait))
+        pace = cfg.get("pace")
+        if pace:
+            self.pace(str(pace))
+        self.reset()
+        self.stop()
+
     def stop(self) -> None:
         self._call("move_x", 0)
         self._call("move_y", 0)
@@ -36,17 +53,53 @@ class Robot:
 
     def move(self, axis: str, speed: float, seconds: float) -> None:
         if axis == "x":
-            self._call("move_x", speed)
+            self.set_move_x(speed)
         elif axis == "y":
-            self._call("move_y", speed)
+            self.set_move_y(speed)
         else:
             raise ValueError(f"未知移动轴: {axis}")
         time.sleep(max(0.0, seconds))
         self.stop()
         time.sleep(0.2)
 
+    def set_move_x(self, speed: float) -> None:
+        self._call("move_x", speed)
+
+    def set_move_y(self, speed: float) -> None:
+        self._call("move_y", speed)
+
     def turn(self, speed: float) -> None:
         self._call("turn", speed)
+
+    def move_x_by(
+        self,
+        distance: float,
+        speed: float = 18,
+        k: float = 0.035,
+        min_time: float = 0.55,
+    ) -> None:
+        self._call("move_x_by", distance, speed, k, min_time)
+
+    def move_y_by(
+        self,
+        distance: float,
+        speed: float = 18,
+        k: float = 0.0373,
+        min_time: float = 0.5,
+    ) -> None:
+        self._call("move_y_by", distance, speed, k, min_time)
+
+    def load_allmotor(self) -> None:
+        self._try_call("load_allmotor")
+
+    def gait_type(self, mode: str) -> None:
+        self._try_call("gait_type", mode)
+
+    def pace(self, mode: str) -> None:
+        self._try_call("pace", mode)
+
+    def enable_wheel_control(self, mode: int) -> None:
+        self._try_call("enable_wheel_control", int(mode))
 
     def read_yaw(self) -> float:
         if self.dry_run or self.dog is None:
@@ -91,3 +144,17 @@ class Robot:
         method = getattr(self.dog, name)
         method(*args)
 
+    def _try_call(self, name: str, *args: Any) -> bool:
+        if self.dry_run or self.dog is None:
+            print(f"[robot] {name}{args}")
+            return True
+        method = getattr(self.dog, name, None)
+        if method is None:
+            print(f"[robot] skip unsupported method: {name}")
+            return False
+        try:
+            method(*args)
+            return True
+        except Exception as exc:
+            print(f"[robot] {name} failed: {exc}")
+            return False

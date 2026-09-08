@@ -4,6 +4,8 @@ import math
 import time
 from collections.abc import Iterable
 
+from .camera import CameraReader
+from .perception import detect_black_line
 from .robot import Robot
 
 
@@ -49,10 +51,106 @@ class Motion:
                 )
             elif kind == "turn_to":
                 self.turn_to(float(step.get("yaw", 0)))
+            elif kind == "line_follow":
+                self.follow_line(
+                    seconds=float(step.get("seconds", 0)),
+                    speed=float(step.get("speed", 10)),
+                    config=step,
+                )
             elif kind == "wait":
                 time.sleep(float(step.get("seconds", 0)))
             else:
                 print(f"[motion] skip unknown route step: {step}")
+
+    def follow_line(self, seconds: float, speed: float, config: dict) -> None:
+        print(f"[motion] line_follow seconds={seconds:.1f} speed={speed:.1f}")
+        if seconds <= 0:
+            return
+        if self.robot.dry_run:
+            time.sleep(min(seconds, 0.2))
+            return
+
+        camera_cfg = config.get("camera", {})
+        line_cfg = config.get("line", {})
+        turn_gain = float(config.get("turn_gain", 45))
+        max_turn = abs(float(config.get("max_turn", 35)))
+        sample_seconds = float(config.get("sample_seconds", 0.08))
+        lost_speed = float(config.get("lost_speed", 0))
+        lost_turn = float(config.get("lost_turn", 0))
+        max_lost_frames = int(config.get("max_lost_frames", 12))
+
+        lost_frames = 0
+        start = time.time()
+        try:
+            with CameraReader(
+                camera_index=int(camera_cfg.get("index", 0)),
+                width=int(camera_cfg.get("width", 320)),
+                height=int(camera_cfg.get("height", 240)),
+                warmup_frames=int(camera_cfg.get("warmup_frames", 5)),
+            ) as reader:
+                while time.time() - start < seconds:
+                    frame = reader.read()
+                    detection = detect_black_line(frame, line_cfg) if frame is not None else None
+                    if detection is None:
+                        lost_frames += 1
+                        self.robot.set_move_x(lost_speed)
+                        self.robot.turn(lost_turn)
+                        if lost_frames >= max_lost_frames:
+                            print("[motion] line lost, stop this segment")
+                            break
+                    else:
+                        lost_frames = 0
+                        turn_speed = _clamp(detection.normalized_x * turn_gain, -max_turn, max_turn)
+                        self.robot.set_move_x(speed)
+                        self.robot.turn(turn_speed)
+                    time.sleep(sample_seconds)
+        finally:
+            self.robot.stop()
+            time.sleep(0.2)
+
+    def drive_square(
+        self,
+        side_cm: float = 50,
+        speed: float = 18,
+        turn_direction: str = "left",
+        settle_seconds: float = 0.5,
+        use_builtin_distance: bool = True,
+        forward_seconds: float | None = None,
+    ) -> None:
+        print(
+            f"[motion] square side={side_cm:.1f}cm speed={speed:.1f} "
+            f"turn={turn_direction} builtin_distance={use_builtin_distance}"
+        )
+        sign = 1 if turn_direction == "left" else -1
+        if self.robot.dry_run:
+            for index in range(4):
+                print(f"[motion] square side {index + 1}/4")
+                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds)
+                self.turn_to(sign * 90 * (index + 1))
+            return
+
+        try:
+            for index in range(4):
+                print(f"[motion] square side {index + 1}/4")
+                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds)
+                time.sleep(max(0.0, settle_seconds))
+                self.turn_to(sign * 90 * (index + 1))
+                time.sleep(max(0.0, settle_seconds))
+        finally:
+            self.robot.stop()
+
+    def _drive_square_side(
+        self,
+        side_cm: float,
+        speed: float,
+        use_builtin_distance: bool,
+        forward_seconds: float | None,
+    ) -> None:
+        if use_builtin_distance:
+            self.robot.move_x_by(side_cm, speed=speed)
+            return
+        seconds = forward_seconds if forward_seconds is not None else _distance_seconds(side_cm, speed)
+        self.robot.move("x", speed, seconds)
 
 
 def _angle_error(target: float, current: float) -> float:
@@ -67,3 +165,6 @@ def _angle_error(target: float, current: float) -> float:
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
+
+def _distance_seconds(distance_cm: float, speed: float) -> float:
+    return max(0.2, 0.035 * abs(distance_cm) * 18 / max(1.0, abs(speed)) + 0.55)

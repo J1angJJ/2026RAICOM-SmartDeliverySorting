@@ -4,18 +4,130 @@ import time
 from typing import Any
 
 
+class CameraReader:
+    def __init__(
+        self,
+        camera_index: int = 0,
+        width: int = 640,
+        height: int = 480,
+        warmup_frames: int = 5,
+    ):
+        self.camera_index = camera_index
+        self.width = width
+        self.height = height
+        self.warmup_frames = warmup_frames
+        self._picam2: Any | None = None
+        self._cap: Any | None = None
+        self._mode = ""
+
+    def __enter__(self) -> "CameraReader":
+        if self._open_picamera2():
+            return self
+        if self._open_opencv():
+            return self
+        raise RuntimeError("无法打开摄像头")
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        self.close()
+
+    def read(self) -> Any | None:
+        if self._mode == "picamera2" and self._picam2 is not None:
+            rgb = self._picam2.capture_array()
+            if rgb is None:
+                return None
+            try:
+                import cv2
+
+                return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            except Exception:
+                return rgb
+
+        if self._mode == "opencv" and self._cap is not None:
+            ok, frame = self._cap.read()
+            return frame if ok else None
+
+        return None
+
+    def close(self) -> None:
+        if self._picam2 is not None:
+            try:
+                self._picam2.stop()
+                self._picam2.close()
+            except Exception:
+                pass
+            self._picam2 = None
+        if self._cap is not None:
+            self._cap.release()
+            self._cap = None
+        self._mode = ""
+
+    def _open_picamera2(self) -> bool:
+        try:
+            from picamera2 import Picamera2
+        except Exception:
+            return False
+
+        picam2 = None
+        try:
+            picam2 = Picamera2()
+            config = picam2.create_preview_configuration(
+                main={"size": (self.width, self.height), "format": "RGB888"}
+            )
+            picam2.configure(config)
+            picam2.start()
+            time.sleep(0.4)
+            self._picam2 = picam2
+            self._mode = "picamera2"
+            for _ in range(max(0, self.warmup_frames - 1)):
+                self.read()
+            return True
+        except Exception as exc:
+            print(f"[camera] Picamera2 failed: {exc}")
+            if picam2 is not None:
+                try:
+                    picam2.close()
+                except Exception:
+                    pass
+            return False
+
+    def _open_opencv(self) -> bool:
+        try:
+            import cv2
+        except Exception as exc:
+            print(f"[camera] cv2 unavailable: {exc}")
+            return False
+
+        backends = [cv2.CAP_V4L2] if hasattr(cv2, "CAP_V4L2") else []
+        backends.append(0)
+        for backend in backends:
+            cap = cv2.VideoCapture(self.camera_index, backend)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            if hasattr(cv2, "CAP_PROP_FOURCC"):
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
+            if cap.isOpened():
+                self._cap = cap
+                self._mode = "opencv"
+                for _ in range(max(0, self.warmup_frames)):
+                    self.read()
+                return True
+            cap.release()
+        return False
+
+
 def capture_frame(
     camera_index: int = 0,
     width: int = 640,
     height: int = 480,
     warmup_frames: int = 5,
 ) -> tuple[bool, Any | None]:
-    frame = _capture_with_picamera2(width, height)
-    if frame is not None:
-        return True, frame
-    frame = _capture_with_opencv(camera_index, width, height, warmup_frames)
-    if frame is not None:
-        return True, frame
+    try:
+        with CameraReader(camera_index, width, height, warmup_frames) as reader:
+            frame = reader.read()
+            if frame is not None:
+                return True, frame
+    except Exception as exc:
+        print(f"[camera] capture failed: {exc}")
     return False, None
 
 
@@ -87,4 +199,3 @@ def _capture_with_opencv(
         finally:
             cap.release()
     return None
-

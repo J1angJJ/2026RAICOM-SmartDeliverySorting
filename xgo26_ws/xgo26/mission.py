@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from enum import Enum
 from pathlib import Path
 
 from .actions import grasp_ball, place_task, prepare_for_mission, speak_task
@@ -12,16 +13,35 @@ from .perception import DeliveryTask, capture_and_vote_expected
 from .robot import Robot
 
 
+class MissionState(str, Enum):
+    BOOT_CHECK = "BOOT_CHECK"
+    FOLLOW_TO_RECOGNITION_1 = "FOLLOW_TO_RECOGNITION_1"
+    DETECT_PACKAGE_1 = "DETECT_PACKAGE_1"
+    FOLLOW_TO_RECOGNITION_2 = "FOLLOW_TO_RECOGNITION_2"
+    DETECT_PACKAGE_2 = "DETECT_PACKAGE_2"
+    GO_TO_PICK_AREA = "GO_TO_PICK_AREA"
+    PICK_AND_DELIVER = "PICK_AND_DELIVER"
+    RETURN_TO_PICK_AREA = "RETURN_TO_PICK_AREA"
+    FINISH = "FINISH"
+
+
 class MissionRunner:
-    def __init__(self, config: dict, dry_run: bool = False, use_expected: bool = False):
+    def __init__(
+        self,
+        config: dict,
+        dry_run: bool = False,
+        use_expected: bool = False,
+        robot: Robot | None = None,
+        motion: Motion | None = None,
+    ):
         self.config = config
         self.dry_run = dry_run
         self.use_expected = use_expected
-        self.robot = Robot(
+        self.robot = robot or Robot(
             serial_port=config["robot"].get("serial_port", "/dev/ttyAMA0"),
             dry_run=dry_run,
         )
-        self.motion = Motion(self.robot)
+        self.motion = motion or Motion(self.robot)
         self.routes = config["mission"]["routes"]
         self.expected = list(config["mission"].get("expected_tasks", []))
         self.tasks: list[DeliveryTask] = []
@@ -29,16 +49,25 @@ class MissionRunner:
     def run(self) -> None:
         started = time.time()
         try:
+            self.enter(MissionState.BOOT_CHECK)
             self.boot_check()
+            self.enter(MissionState.FOLLOW_TO_RECOGNITION_1)
             self.go("start_to_recognition_1")
+            self.enter(MissionState.DETECT_PACKAGE_1)
             self.detect_package(0)
+            self.enter(MissionState.FOLLOW_TO_RECOGNITION_2)
             self.go("recognition_1_to_recognition_2")
+            self.enter(MissionState.DETECT_PACKAGE_2)
             self.detect_package(1)
+            self.enter(MissionState.GO_TO_PICK_AREA)
             self.go("recognition_2_to_pick_area")
             for index, task in enumerate(self.tasks):
+                self.enter(MissionState.PICK_AND_DELIVER)
                 self.pick_and_deliver(task)
                 if index == 0:
+                    self.enter(MissionState.RETURN_TO_PICK_AREA)
                     self.go("return_to_pick_area")
+            self.enter(MissionState.FINISH)
             self.finish(started)
         except KeyboardInterrupt:
             print("[mission] interrupted")
@@ -49,11 +78,14 @@ class MissionRunner:
             self.robot.stop()
             raise
 
+    def enter(self, state: MissionState) -> None:
+        print(f"[mission] STATE {state.value}")
+
     def boot_check(self) -> None:
-        print("[mission] BOOT_CHECK")
         battery = self.robot.read_battery()
         if battery is not None:
             print(f"[mission] battery={battery}%")
+        self.robot.initialize_control_mode(self.config["robot"].get("control", {}))
         prepare_for_mission(self.robot)
 
     def go(self, route_name: str) -> None:
@@ -107,4 +139,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
