@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         help="--timed 模式下单边前进秒数；不填则按边长和速度估算",
     )
+    parser.add_argument(
+        "--distance-scale",
+        type=float,
+        help="厂家 move_x_by 距离缩放；实测 move_x_by(50) 约走 1m 时可设为 0.5",
+    )
     parser.add_argument("--dry-run", action="store_true", help="只打印动作，不连接硬件")
     return parser.parse_args()
 
@@ -43,6 +48,7 @@ def main() -> None:
     square_cfg = config.get("square_test", {})
     robot = Robot(
         serial_port=config["robot"].get("serial_port", "/dev/ttyAMA0"),
+        model=config["robot"].get("model", "auto"),
         dry_run=args.dry_run,
     )
     motion = Motion(robot)
@@ -55,7 +61,10 @@ def main() -> None:
             turn_direction=str(args.turn_direction or square_cfg.get("turn_direction", "left")),
             settle_seconds=float(square_cfg.get("settle_seconds", 0.5)),
             use_builtin_distance=not args.timed and bool(square_cfg.get("use_builtin_distance", True)),
-            forward_seconds=args.forward_seconds,
+            forward_seconds=args.forward_seconds if args.forward_seconds is not None else square_cfg.get("forward_seconds"),
+            distance_scale=float(
+                args.distance_scale if args.distance_scale is not None else square_cfg.get("distance_scale", 1.0)
+            ),
         )
     except KeyboardInterrupt:
         print("[square] interrupted")

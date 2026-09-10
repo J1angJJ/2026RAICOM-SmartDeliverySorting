@@ -193,6 +193,7 @@
     "speed": 18,
     "turn_direction": "left",
     "settle_seconds": 0.5,
-    "use_builtin_distance": true
+    "use_builtin_distance": true,
+    "distance_scale": 0.5
   }
 }

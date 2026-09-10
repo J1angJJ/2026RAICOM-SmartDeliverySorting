@@ -116,23 +116,25 @@ class Motion:
         settle_seconds: float = 0.5,
         use_builtin_distance: bool = True,
         forward_seconds: float | None = None,
+        distance_scale: float = 1.0,
     ) -> None:
         print(
             f"[motion] square side={side_cm:.1f}cm speed={speed:.1f} "
-            f"turn={turn_direction} builtin_distance={use_builtin_distance}"
+            f"turn={turn_direction} builtin_distance={use_builtin_distance} "
+            f"distance_scale={distance_scale:.2f}"
         )
         sign = 1 if turn_direction == "left" else -1
         if self.robot.dry_run:
             for index in range(4):
                 print(f"[motion] square side {index + 1}/4")
-                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds)
+                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds, distance_scale)
                 self.turn_to(sign * 90 * (index + 1))
             return
 
         try:
             for index in range(4):
                 print(f"[motion] square side {index + 1}/4")
-                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds)
+                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds, distance_scale)
                 time.sleep(max(0.0, settle_seconds))
                 self.turn_to(sign * 90 * (index + 1))
                 time.sleep(max(0.0, settle_seconds))
@@ -145,9 +147,10 @@ class Motion:
         speed: float,
         use_builtin_distance: bool,
         forward_seconds: float | None,
+        distance_scale: float,
     ) -> None:
         if use_builtin_distance:
-            self.robot.move_x_by(side_cm, speed=speed)
+            self.robot.move_x_by(side_cm * distance_scale, speed=speed)
             return
         seconds = forward_seconds if forward_seconds is not None else _distance_seconds(side_cm, speed)
         self.robot.move("x", speed, seconds)

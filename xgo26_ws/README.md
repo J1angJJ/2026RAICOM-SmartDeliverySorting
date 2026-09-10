@@ -131,6 +131,13 @@ python tools/test_camera.py
 python tools/test_square_motion.py
 ```
 
+当前默认 `distance_scale=0.5`，用于修正实测 `move_x_by(50)` 约走 1m 的情况。若仍偏大或偏小，可以直接改缩放：
+
+```bash
+python tools/test_square_motion.py --distance-scale 0.45
+python tools/test_square_motion.py --distance-scale 0.6
+```
+
 如果感觉厂家 `move_x_by` 距离估算不对，可以改用定时前进模式对比：
 
 ```bash

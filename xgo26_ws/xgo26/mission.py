@@ -39,6 +39,7 @@ class MissionRunner:
         self.use_expected = use_expected
         self.robot = robot or Robot(
             serial_port=config["robot"].get("serial_port", "/dev/ttyAMA0"),
+            model=config["robot"].get("model", "auto"),
             dry_run=dry_run,
         )
         self.motion = motion or Motion(self.robot)

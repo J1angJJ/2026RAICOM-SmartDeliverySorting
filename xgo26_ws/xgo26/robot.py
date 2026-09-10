@@ -5,18 +5,24 @@ from typing import Any
 
 
 class Robot:
-    def __init__(self, serial_port: str = "/dev/ttyAMA0", dry_run: bool = False):
+    def __init__(
+        self,
+        serial_port: str = "/dev/ttyAMA0",
+        model: str = "auto",
+        dry_run: bool = False,
+    ):
         self.serial_port = serial_port
+        self.model = model
         self.dry_run = dry_run
         self.dog: Any | None = None
         if dry_run:
-            print(f"[robot] dry-run mode, serial={serial_port}")
+            print(f"[robot] dry-run mode, serial={serial_port}, model={model}")
             return
         try:
             import xgolib
 
-            self.dog = xgolib.XGO(serial_port)
-            print(f"[robot] connected serial={serial_port}")
+            self.dog = xgolib.XGO(port=serial_port, version=model)
+            print(f"[robot] connected serial={serial_port}, model={model}")
         except Exception as exc:
             raise RuntimeError(f"无法初始化 XGO({serial_port}): {exc}") from exc
 
