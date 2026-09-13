@@ -12,6 +12,8 @@
 
 比赛移动动作集中在 `xgo26/competition_drive.py`：前进、后退和循迹航向微调只驱动四个轮子，原地角度转向仍使用机器狗正常步态。横移目前也保留厂家步态，后续按沙盘实测在这个文件内替换即可。
 
+视觉由 `xgo26-camera.service` 独占 Picamera2 并向浏览器、YOLO 和传统视觉分发同一时刻的最新帧，设计和接口见 `vision_pipeline.md`。
+
 当前阶段先做赛题研究和工程拆解，结论见：
 
 - `task_study.md`
@@ -62,6 +64,26 @@ python scripts/check_environment.py --strict
 ```
 
 ### 运行任务
+
+检查共享相机服务：
+
+```bash
+curl http://127.0.0.1:8090/health
+python tools/test_camera.py --stream lores
+python tools/test_camera.py --stream main
+```
+
+浏览器预览：
+
+```text
+http://192.168.31.70:8090/
+```
+
+需要前台调试相机服务时，先确认厂商相机服务已经停止，再运行：
+
+```bash
+python scripts/run_camera_service.py
+```
 
 不连接硬件，只验证完整任务流程：
 
@@ -159,10 +181,12 @@ python tools/test_drive_actions.py turn-right --angle 30
 python tools/print_expected_tasks.py
 ```
 
-测试摄像头：
+测试摄像头；`--direct` 仅用于相机服务停止后的底层排查：
 
 ```bash
 python tools/test_camera.py
+python tools/test_camera.py --stream main
+python tools/test_camera.py --direct
 ```
 
 测试 50cm 正方形运动：
@@ -193,24 +217,24 @@ python tools/test_ball_grasp.py grasp-once
 python tools/test_ball_grasp.py catch --color red
 ```
 
-### 运行前停止厂商占用服务
+### 运行前处理厂商占用服务
 
-如果摄像头或串口被厂商服务占用，先停掉：
+比赛相机服务启用后会替代 `oumax-camera`，不要同时启动两者。如果串口被手动控制服务占用，再单独停止 `oumax-manual`：
 
 ```bash
-sudo systemctl stop oumax-camera oumax-manual
+sudo systemctl stop oumax-manual
 ```
 
-恢复厂商服务：
+相机服务的安装和回滚命令见 `vision_pipeline.md`。恢复厂商手动控制服务：
 
 ```bash
-sudo systemctl start oumax-camera oumax-manual
+sudo systemctl start oumax-manual
 ```
 
 查看服务状态：
 
 ```bash
-systemctl status oumax-camera oumax-manual --no-pager
+systemctl status xgo26-camera oumax-manual --no-pager
 ```
 
 ### 停止任务

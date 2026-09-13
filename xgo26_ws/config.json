@@ -17,9 +17,29 @@
   },
   "camera": {
     "index": 0,
-    "width": 640,
-    "height": 480,
-    "warmup_frames": 5
+    "source": "service",
+    "service_url": "http://127.0.0.1:8090",
+    "request_timeout": 2.0,
+    "port": 8090,
+    "fps": 30,
+    "buffer_count": 4,
+    "jpeg_quality": 80,
+    "sensor": {
+      "width": 1296,
+      "height": 972,
+      "bit_depth": 10
+    },
+    "main": {
+      "width": 1296,
+      "height": 972
+    },
+    "lores": {
+      "width": 640,
+      "height": 480
+    },
+    "width": 1296,
+    "height": 972,
+    "warmup_frames": 2
   },
   "models": {
     "package_model": "models/package_letter.onnx",
@@ -28,7 +48,8 @@
   "detection": {
     "confidence": 0.45,
     "iou": 0.45,
-    "frames": 3
+    "frames": 3,
+    "camera_stream": "main"
   },
   "mission": {
     "map_notes": [
@@ -465,6 +486,7 @@
     "blue": [0, 255, 126, 255, 0, 122]
   },
   "grasp": {
+    "camera_stream": "lores",
     "camera_width": 320,
     "camera_height": 240,
     "warmup_frames": 2,

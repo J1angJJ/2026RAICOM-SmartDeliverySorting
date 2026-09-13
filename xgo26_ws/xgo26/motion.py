@@ -11,9 +11,15 @@ from .robot import Robot
 
 
 class Motion:
-    def __init__(self, robot: Robot, drive_config: dict | None = None):
+    def __init__(
+        self,
+        robot: Robot,
+        drive_config: dict | None = None,
+        camera_config: dict | None = None,
+    ):
         self.robot = robot
         self.drive = CompetitionDrive(robot, drive_config)
+        self.camera_config = camera_config or {}
         self.start_yaw = robot.read_yaw()
         self.prev_error: float | None = None
         self.integral = 0.0
@@ -165,7 +171,7 @@ class Motion:
             time.sleep(min(seconds, 0.2))
             return
 
-        camera_cfg = config.get("camera", {})
+        camera_cfg = {**self.camera_config, **config.get("camera", {})}
         line_cfg = config.get("line", {})
         turn_gain = float(config.get("turn_gain", 45))
         max_turn = abs(float(config.get("max_turn", 35)))
@@ -182,6 +188,10 @@ class Motion:
                 width=int(camera_cfg.get("width", 320)),
                 height=int(camera_cfg.get("height", 240)),
                 warmup_frames=int(camera_cfg.get("warmup_frames", 5)),
+                source=str(camera_cfg.get("source", "direct")),
+                service_url=str(camera_cfg.get("service_url", "http://127.0.0.1:8090")),
+                stream=str(camera_cfg.get("stream", "lores")),
+                request_timeout=float(camera_cfg.get("request_timeout", 2.0)),
             ) as reader:
                 while time.time() - start < seconds:
                     frame = reader.read()

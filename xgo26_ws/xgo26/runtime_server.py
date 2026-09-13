@@ -20,7 +20,11 @@ class RuntimeState:
             model=config["robot"].get("model", "auto"),
             dry_run=dry_run,
         )
-        self.motion = Motion(self.robot, config["robot"].get("drive", {}))
+        self.motion = Motion(
+            self.robot,
+            config["robot"].get("drive", {}),
+            config.get("camera", {}),
+        )
         self.lock = threading.Lock()
         self.job_name = "idle"
         self.job_started_at: float | None = None

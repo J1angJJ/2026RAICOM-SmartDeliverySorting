@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from .camera import capture_frame
+from .camera import camera_reader_from_config, capture_frame_from_config
 from .motion import Motion
 from .perception import BallDetection, DeliveryTask, detect_colored_ball
 from .robot import Robot
@@ -46,8 +46,9 @@ def detect_ball_once(color: str, config: dict) -> tuple[bool, BallDetection | No
 
     camera_cfg = config["camera"]
     grasp_cfg = config.get("grasp", {})
-    ok, frame = capture_frame(
-        camera_index=int(camera_cfg.get("index", 0)),
+    ok, frame = capture_frame_from_config(
+        camera_cfg,
+        stream=str(grasp_cfg.get("camera_stream", "lores")),
         width=int(grasp_cfg.get("camera_width", 320)),
         height=int(grasp_cfg.get("camera_height", 240)),
         warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
@@ -74,41 +75,43 @@ def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
     max_seconds = float(grasp_cfg.get("max_step_seconds", 1.2))
     yaw_every = int(grasp_cfg.get("yaw_correction_every", 5))
 
-    for index in range(max_steps):
-        ok, frame = capture_frame(
-            camera_index=int(camera_cfg.get("index", 0)),
-            width=int(grasp_cfg.get("camera_width", 320)),
-            height=int(grasp_cfg.get("camera_height", 240)),
-            warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
-        )
-        if not ok:
-            print("[action] camera failed while grasping")
-            break
-        detection = detect_colored_ball(frame, color, threshold)
-        if detection is None:
-            print("[action] ball not found, move forward")
-            motion.move("x", float(grasp_cfg.get("search_speed", 12)), 0.7)
-            continue
+    with camera_reader_from_config(
+        camera_cfg,
+        stream=str(grasp_cfg.get("camera_stream", "lores")),
+        width=int(grasp_cfg.get("camera_width", 320)),
+        height=int(grasp_cfg.get("camera_height", 240)),
+        warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
+    ) as reader:
+        for index in range(max_steps):
+            frame = reader.read()
+            if frame is None:
+                print("[action] camera failed while grasping")
+                break
+            detection = detect_colored_ball(frame, color, threshold)
+            if detection is None:
+                print("[action] ball not found, move forward")
+                motion.move("x", float(grasp_cfg.get("search_speed", 12)), 0.7)
+                continue
 
-        print(f"[action] {detection.summary()}")
-        if detection.centered(target_x, target_y, tolerance_x, tolerance_y):
-            return True
+            print(f"[action] {detection.summary()}")
+            if detection.centered(target_x, target_y, tolerance_x, tolerance_y):
+                return True
 
-        err_x = detection.normalized_x - target_x
-        err_y = detection.normalized_y - target_y
-        if abs(err_x) >= tolerance_x:
-            seconds = min(max_seconds, max(min_seconds, abs(err_x)))
-            speed = float(grasp_cfg.get("lateral_speed", 10))
-            motion.move("y", speed if err_x < 0 else -speed, seconds)
-        else:
-            seconds = min(max_seconds, max(min_seconds, abs(err_y)))
-            if err_y < 0:
-                speed = float(grasp_cfg.get("backward_speed", -10))
+            err_x = detection.normalized_x - target_x
+            err_y = detection.normalized_y - target_y
+            if abs(err_x) >= tolerance_x:
+                seconds = min(max_seconds, max(min_seconds, abs(err_x)))
+                speed = float(grasp_cfg.get("lateral_speed", 10))
+                motion.move("y", speed if err_x < 0 else -speed, seconds)
             else:
-                speed = float(grasp_cfg.get("forward_speed", 12))
-            motion.move("x", speed, seconds)
-        if yaw_every > 0 and index % yaw_every == yaw_every - 1:
-            motion.turn_to(0)
+                seconds = min(max_seconds, max(min_seconds, abs(err_y)))
+                if err_y < 0:
+                    speed = float(grasp_cfg.get("backward_speed", -10))
+                else:
+                    speed = float(grasp_cfg.get("forward_speed", 12))
+                motion.move("x", speed, seconds)
+            if yaw_every > 0 and index % yaw_every == yaw_every - 1:
+                motion.turn_to(0)
 
     return False
 

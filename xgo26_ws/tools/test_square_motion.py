@@ -51,7 +51,7 @@ def main() -> None:
         model=config["robot"].get("model", "auto"),
         dry_run=args.dry_run,
     )
-    motion = Motion(robot, config["robot"].get("drive", {}))
+    motion = Motion(robot, config["robot"].get("drive", {}), config.get("camera", {}))
 
     try:
         robot.initialize_control_mode(config["robot"].get("control", {}))

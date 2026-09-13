@@ -46,7 +46,11 @@ class MissionRunner:
             model=config["robot"].get("model", "auto"),
             dry_run=dry_run,
         )
-        self.motion = motion or Motion(self.robot, config["robot"].get("drive", {}))
+        self.motion = motion or Motion(
+            self.robot,
+            config["robot"].get("drive", {}),
+            config.get("camera", {}),
+        )
         self.routes = config["mission"]["routes"]
         self.expected = list(config["mission"].get("expected_tasks", []))
         self.tasks: list[DeliveryTask] = []

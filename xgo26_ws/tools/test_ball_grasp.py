@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from xgo26.actions import align_ball, grasp_once, prepare_for_grasp
-from xgo26.camera import capture_frame
+from xgo26.camera import capture_frame_from_config
 from xgo26.config import load_config, resolve_path
 from xgo26.motion import Motion
 from xgo26.perception import detect_colored_ball, save_ball_debug_image
@@ -34,8 +34,9 @@ def parse_args() -> argparse.Namespace:
 def detect_once(color: str, config: dict, save_image: bool) -> bool:
     camera_cfg = config["camera"]
     grasp_cfg = config.get("grasp", {})
-    ok, frame = capture_frame(
-        camera_index=int(camera_cfg.get("index", 0)),
+    ok, frame = capture_frame_from_config(
+        camera_cfg,
+        stream=str(grasp_cfg.get("camera_stream", "lores")),
         width=int(grasp_cfg.get("camera_width", 320)),
         height=int(grasp_cfg.get("camera_height", 240)),
         warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
@@ -80,7 +81,7 @@ def main() -> None:
         raise SystemExit(0 if detect_once(args.color, config, args.save_image) else 1)
 
     robot = Robot(config["robot"].get("serial_port", "/dev/ttyAMA0"), dry_run=args.dry_run)
-    motion = Motion(robot, config["robot"].get("drive", {}))
+    motion = Motion(robot, config["robot"].get("drive", {}), config.get("camera", {}))
 
     if args.mode == "align":
         if not args.dry_run:

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .camera import capture_frame
+from .camera import camera_reader_from_config
 from .config import ROOT, resolve_path
 
 
@@ -158,18 +158,20 @@ def capture_and_vote_expected(
 
     camera_cfg = config["camera"]
     votes: list[DeliveryTask] = []
-    for _ in range(int(config["detection"].get("frames", 3))):
-        ok, frame = capture_frame(
-            camera_index=int(camera_cfg.get("index", 0)),
-            width=int(camera_cfg.get("width", 640)),
-            height=int(camera_cfg.get("height", 480)),
-            warmup_frames=int(camera_cfg.get("warmup_frames", 5)),
-        )
-        if not ok:
-            continue
-        task = detector.detect_frame(frame)
-        if task is not None:
-            votes.append(task)
+    with camera_reader_from_config(
+        camera_cfg,
+        stream=str(config["detection"].get("camera_stream", "main")),
+        width=int(camera_cfg.get("width", 1296)),
+        height=int(camera_cfg.get("height", 972)),
+        warmup_frames=int(camera_cfg.get("warmup_frames", 5)),
+    ) as reader:
+        for _ in range(int(config["detection"].get("frames", 3))):
+            frame = reader.read()
+            if frame is None:
+                continue
+            task = detector.detect_frame(frame)
+            if task is not None:
+                votes.append(task)
     if not votes:
         raise RuntimeError("多帧识别未得到有效包裹任务")
     key = Counter((task.letter, task.package, task.ball_color) for task in votes).most_common(1)[0][0]

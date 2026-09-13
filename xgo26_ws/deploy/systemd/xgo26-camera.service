@@ -1,0 +1,15 @@
+[Unit]
+Description=XGO26 shared Picamera2 service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/2026-raicom-smart-delivery-sorting/xgo26_ws
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/RaspberryPi-CM5/xgovenv/bin/python scripts/run_camera_service.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
