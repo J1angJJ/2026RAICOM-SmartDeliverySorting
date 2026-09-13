@@ -85,6 +85,8 @@ class Motion:
                     speed=float(step.get("speed", 10)),
                     config=step,
                 )
+            elif kind == "wheel_posture":
+                self.drive.use_wheel_posture(str(step.get("name", "neutral")))
             elif kind == "wait":
                 time.sleep(float(step.get("seconds", 0)))
             elif kind == "stop":
@@ -188,8 +190,12 @@ class Motion:
         minimum_speed_ratio = float(config.get("minimum_speed_ratio", 0.55))
         turn_slowdown = float(config.get("turn_slowdown", 0.65))
         steering_deadband = abs(float(config.get("steering_deadband", 0.025)))
+        stop_on_corner = str(config.get("stop_on_corner", ""))
+        corner_frames_required = max(1, int(config.get("corner_frames", 3)))
+        corner_confidence = float(config.get("corner_confidence", 0.55))
 
         lost_frames = 0
+        corner_frames = 0
         tracker = LineTracker(line_cfg)
         start = time.time()
         try:
@@ -214,6 +220,19 @@ class Motion:
                             break
                     else:
                         lost_frames = 0
+                        corner = tracker.last_corner
+                        if (
+                            stop_on_corner in {"left", "right"}
+                            and corner is not None
+                            and corner.direction == stop_on_corner
+                            and corner.confidence >= corner_confidence
+                        ):
+                            corner_frames += 1
+                            if corner_frames >= corner_frames_required:
+                                print(f"[motion] {corner.summary()}, stop this segment")
+                                break
+                        else:
+                            corner_frames = 0
                         steering = detection.steering_error
                         if abs(steering) < steering_deadband:
                             steering = 0.0

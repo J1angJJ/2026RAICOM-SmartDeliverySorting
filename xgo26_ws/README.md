@@ -175,6 +175,15 @@ python tools/test_drive_actions.py turn-right --angle 30
 
 前两条会启用四轮独立控制，四条腿不执行行走步态；后两条会先退出轮控，再使用 IMU 闭环的正常转向。测试结束会停车并恢复到步态模式。
 
+测试低头四轮姿态；该命令不让轮子转动，保持指定秒数后恢复中立步态：
+
+```bash
+python tools/test_drive_actions.py view-down --seconds 5
+```
+
+`view_down` 使用厂商循迹例程采用的最低机身高度 `75 mm` 和最大前倾角
+`+15°`。姿态参数位于 `robot.drive.wheel_postures`，首次实测时应扶稳机器狗并确认四轮均正常承重。
+
 打印 `config.json` 里的示例任务：
 
 ```bash

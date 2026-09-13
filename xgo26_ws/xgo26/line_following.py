@@ -26,6 +26,21 @@ class LineDetection:
         )
 
 
+@dataclass(frozen=True)
+class CornerDetection:
+    direction: str
+    x: int
+    y: int
+    horizontal_span: int
+    confidence: float
+
+    def summary(self) -> str:
+        return (
+            f"corner direction={self.direction} pixel=({self.x},{self.y}) "
+            f"span={self.horizontal_span} confidence={self.confidence:.2f}"
+        )
+
+
 class LineTracker:
     """Track a dark floor strip using several horizontal scan bands."""
 
@@ -35,6 +50,7 @@ class LineTracker:
         self._smoothed_steering: float | None = None
         self._lost_frames = 0
         self.last_mask: Any | None = None
+        self.last_corner: CornerDetection | None = None
 
     def process(self, frame: Any) -> LineDetection | None:
         import cv2
@@ -67,6 +83,7 @@ class LineTracker:
 
         target_x = width * float(cfg.get("target_x_ratio", 0.5))
         expected_x = self._last_near_x if self._last_near_x is not None else target_x
+        initial_expected_x = expected_x
         points: list[tuple[int, int]] = []
         line_widths: list[int] = []
         scores: list[float] = []
@@ -88,8 +105,25 @@ class LineTracker:
             scores.append(score)
             expected_x = center_x
 
+        line_reference_x = points[0][0] if points else initial_expected_x
+        corner_hint = _detect_corner(mask, line_reference_x, cfg)
+        if corner_hint is not None:
+            keep = [
+                index
+                for index, point in enumerate(points)
+                if point[1] >= corner_hint.y
+            ]
+            points = [points[index] for index in keep]
+            line_widths = [line_widths[index] for index in keep]
+            scores = [scores[index] for index in keep]
+            if not points or abs(points[-1][1] - corner_hint.y) > 3:
+                points.append((corner_hint.x, corner_hint.y))
+                line_widths.append(line_widths[-1] if line_widths else 1)
+                scores.append(corner_hint.confidence)
+
         minimum_bands = max(1, int(cfg.get("minimum_bands", 2)))
         if len(points) < minimum_bands:
+            self.last_corner = corner_hint
             self._mark_lost()
             return None
 
@@ -111,12 +145,14 @@ class LineTracker:
         band_ratio = len(points) / max(len(bands), 1)
         confidence = min(1.0, band_ratio * sum(scores) / max(len(scores), 1))
         if confidence < float(cfg.get("minimum_confidence", 0.35)):
+            self.last_corner = corner_hint
             self._mark_lost()
             return None
 
         self._last_near_x = near_x
         self._smoothed_steering = steering_error
         self._lost_frames = 0
+        self.last_corner = corner_hint
         return LineDetection(
             near_x=near_x,
             far_x=far_x,
@@ -162,10 +198,73 @@ def draw_line_debug(frame: Any, detection: LineDetection | None, mask: Any, conf
         )
     else:
         label = "LINE LOST"
-    cv2.putText(output, label, (10, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
+    cv2.putText(output, label, (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 0, 255), 1)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
     return cv2.hconcat([output, mask_bgr])
+
+
+def draw_corner_debug(output: Any, corner: CornerDetection | None) -> Any:
+    import cv2
+
+    if corner is None:
+        return output
+    color = (255, 0, 255)
+    cv2.circle(output, (corner.x, corner.y), 7, color, 2)
+    arrow = 45 if corner.direction == "right" else -45
+    cv2.arrowedLine(
+        output,
+        (corner.x, corner.y),
+        (corner.x + arrow, corner.y),
+        color,
+        3,
+        tipLength=0.3,
+    )
+    return output
+
+
+def _detect_corner(mask: Any, line_x: float, config: dict) -> CornerDetection | None:
+    import cv2
+
+    height, width = mask.shape
+    min_span = max(9, int(width * float(config.get("corner_minimum_span_ratio", 0.22))))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (min_span, 3))
+    horizontal = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    contours, _ = cv2.findContours(horizontal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    join_tolerance = width * float(config.get("corner_join_tolerance_ratio", 0.08))
+    minimum_side = width * float(config.get("corner_minimum_side_ratio", 0.16))
+    minimum_y = height * float(config.get("corner_minimum_y_ratio", 0.52))
+    maximum_height = height * float(config.get("corner_maximum_height_ratio", 0.14))
+
+    best: CornerDetection | None = None
+    for contour in contours:
+        x, y, span, thickness = cv2.boundingRect(contour)
+        if span < min_span or thickness > maximum_height or y + thickness < minimum_y:
+            continue
+        if x > line_x + join_tolerance or x + span < line_x - join_tolerance:
+            continue
+        center_y = y + thickness // 2
+        left_span = max(0.0, line_x - x)
+        right_span = max(0.0, x + span - line_x)
+        if right_span >= minimum_side and right_span > left_span * 1.25:
+            direction = "right"
+            side_span = right_span
+        elif left_span >= minimum_side and left_span > right_span * 1.25:
+            direction = "left"
+            side_span = left_span
+        else:
+            continue
+        confidence = min(1.0, side_span / max(width * 0.5, 1.0))
+        candidate = CornerDetection(
+            direction=direction,
+            x=int(round(line_x)),
+            y=center_y,
+            horizontal_span=span,
+            confidence=confidence,
+        )
+        if best is None or candidate.confidence > best.confidence:
+            best = candidate
+    return best
 
 
 def _find_band_candidate(

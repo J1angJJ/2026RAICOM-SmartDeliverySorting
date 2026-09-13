@@ -6,7 +6,19 @@
       "forward_input_max": 30,
       "turn_input_max": 80,
       "wheel_speed_max": 1.2,
-      "switch_delay": 0.12
+      "switch_delay": 0.12,
+      "wheel_postures": {
+        "neutral": {
+          "height": 95,
+          "pitch": 0,
+          "settle_seconds": 0.4
+        },
+        "view_down": {
+          "height": 75,
+          "pitch": 15,
+          "settle_seconds": 0.6
+        }
+      }
     },
     "control": {
       "disable_wheel_control": true,
@@ -69,7 +81,12 @@
     "heading_weight": 0.55,
     "smoothing_alpha": 0.45,
     "minimum_confidence": 0.35,
-    "memory_frames": 4
+    "memory_frames": 4,
+    "corner_minimum_span_ratio": 0.22,
+    "corner_join_tolerance_ratio": 0.08,
+    "corner_minimum_side_ratio": 0.16,
+    "corner_minimum_y_ratio": 0.52,
+    "corner_maximum_height_ratio": 0.14
   },
   "models": {
     "package_model": "models/package_letter.onnx",

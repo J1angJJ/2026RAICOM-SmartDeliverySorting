@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 from xgo26.camera import capture_frame_from_config
 from xgo26.config import load_config, resolve_path
-from xgo26.line_following import LineTracker, draw_line_debug
+from xgo26.line_following import LineTracker, draw_corner_debug, draw_line_debug
 
 
 def main() -> None:
@@ -41,11 +41,15 @@ def main() -> None:
     tracker = LineTracker(config["line_following"])
     detection = tracker.process(frame)
     debug = draw_line_debug(frame, detection, tracker.last_mask, config["line_following"])
+    debug[:, : frame.shape[1]] = draw_corner_debug(
+        debug[:, : frame.shape[1]], tracker.last_corner
+    )
     output = resolve_path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     if not cv2.imwrite(str(output), debug):
         raise SystemExit(f"无法保存调试图: {output}")
     print(detection.summary() if detection is not None else "line lost")
+    print(tracker.last_corner.summary() if tracker.last_corner is not None else "corner not found")
     print(f"debug image: {output}")
 
 
