@@ -5,13 +5,15 @@ import time
 from collections.abc import Iterable
 
 from .camera import CameraReader
+from .competition_drive import CompetitionDrive
 from .perception import detect_black_line
 from .robot import Robot
 
 
 class Motion:
-    def __init__(self, robot: Robot):
+    def __init__(self, robot: Robot, drive_config: dict | None = None):
         self.robot = robot
+        self.drive = CompetitionDrive(robot, drive_config)
         self.start_yaw = robot.read_yaw()
         self.prev_error: float | None = None
         self.integral = 0.0
@@ -32,15 +34,15 @@ class Motion:
             current = self.robot.read_yaw() - self.start_yaw
             error = _angle_error(target_deg, current)
             if abs(error) < 1.0:
-                self.robot.turn(0)
+                self.drive.turn(0)
                 break
             speed = _clamp(error * 1.2, -80, 80)
             if abs(speed) < 15:
                 speed = 15 if speed > 0 else -15
-            self.robot.turn(speed)
+            self.drive.turn(speed)
             if time.time() - start > timeout:
                 print(f"[motion] turn_to timeout, target={target_deg}, error={error:.1f}")
-                self.robot.turn(0)
+                self.drive.turn(0)
                 break
             time.sleep(0.08)
         time.sleep(0.3)
@@ -50,7 +52,7 @@ class Motion:
         for step in steps:
             kind = step.get("kind")
             if kind == "move":
-                self.robot.move(
+                self.move(
                     axis=str(step.get("axis", "x")),
                     speed=float(step.get("speed", 0)),
                     seconds=float(step.get("seconds", 0)),
@@ -78,7 +80,7 @@ class Motion:
             elif kind == "wait":
                 time.sleep(float(step.get("seconds", 0)))
             elif kind == "stop":
-                self.robot.stop()
+                self.stop()
                 time.sleep(float(step.get("seconds", 0.2)))
             elif kind == "mark":
                 print(f"[motion] mark {step.get('name', '')}".rstrip())
@@ -91,12 +93,29 @@ class Motion:
         speed = float(step.get("speed", 18))
         scale = float(step.get("distance_scale", 1.0))
         if axis == "x":
-            self.robot.move_x_by(distance * scale, speed=speed)
+            scaled_distance = distance * scale
+            if scaled_distance == 0:
+                self.stop()
+                return
+            seconds = _distance_seconds(scaled_distance, speed)
+            self.drive.move_forward(math.copysign(abs(speed), scaled_distance), seconds)
             return
         if axis == "y":
             self.robot.move_y_by(distance * scale, speed=speed)
             return
         raise ValueError(f"未知移动轴: {axis}")
+
+    def move(self, axis: str, speed: float, seconds: float) -> None:
+        if axis == "x":
+            self.drive.move_forward(speed, seconds)
+            return
+        if axis == "y":
+            self.drive.gait_lateral(speed, seconds)
+            return
+        raise ValueError(f"未知移动轴: {axis}")
+
+    def stop(self) -> None:
+        self.drive.stop()
 
     def yaw_hold_move(
         self,
@@ -127,15 +146,15 @@ class Motion:
                 error = _angle_error(yaw, current)
                 turn_speed = _clamp(error * turn_gain, -abs(max_turn), abs(max_turn))
                 if axis == "x":
-                    self.robot.set_move_x(speed)
-                    self.robot.set_move_y(0)
+                    self.drive.wheel_drive(forward=speed, yaw=turn_speed)
                 else:
+                    self.drive.use_gait_mode()
                     self.robot.set_move_y(speed)
                     self.robot.set_move_x(0)
-                self.robot.turn(turn_speed)
+                    self.robot.turn(turn_speed)
                 time.sleep(sample_seconds)
         finally:
-            self.robot.stop()
+            self.stop()
             time.sleep(0.2)
 
     def follow_line(self, seconds: float, speed: float, config: dict) -> None:
@@ -169,19 +188,17 @@ class Motion:
                     detection = detect_black_line(frame, line_cfg) if frame is not None else None
                     if detection is None:
                         lost_frames += 1
-                        self.robot.set_move_x(lost_speed)
-                        self.robot.turn(lost_turn)
+                        self.drive.wheel_drive(forward=lost_speed, yaw=lost_turn)
                         if lost_frames >= max_lost_frames:
                             print("[motion] line lost, stop this segment")
                             break
                     else:
                         lost_frames = 0
                         turn_speed = _clamp(detection.normalized_x * turn_gain, -max_turn, max_turn)
-                        self.robot.set_move_x(speed)
-                        self.robot.turn(turn_speed)
+                        self.drive.wheel_drive(forward=speed, yaw=turn_speed)
                     time.sleep(sample_seconds)
         finally:
-            self.robot.stop()
+            self.stop()
             time.sleep(0.2)
 
     def drive_square(
@@ -190,46 +207,51 @@ class Motion:
         speed: float = 18,
         turn_direction: str = "left",
         settle_seconds: float = 0.5,
-        use_builtin_distance: bool = True,
+        use_distance_estimate: bool = True,
         forward_seconds: float | None = None,
         distance_scale: float = 1.0,
     ) -> None:
         print(
             f"[motion] square side={side_cm:.1f}cm speed={speed:.1f} "
-            f"turn={turn_direction} builtin_distance={use_builtin_distance} "
+            f"turn={turn_direction} distance_estimate={use_distance_estimate} "
             f"distance_scale={distance_scale:.2f}"
         )
         sign = 1 if turn_direction == "left" else -1
         if self.robot.dry_run:
             for index in range(4):
                 print(f"[motion] square side {index + 1}/4")
-                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds, distance_scale)
+                self._drive_square_side(side_cm, speed, use_distance_estimate, forward_seconds, distance_scale)
                 self.turn_to(sign * 90 * (index + 1))
             return
 
         try:
             for index in range(4):
                 print(f"[motion] square side {index + 1}/4")
-                self._drive_square_side(side_cm, speed, use_builtin_distance, forward_seconds, distance_scale)
+                self._drive_square_side(side_cm, speed, use_distance_estimate, forward_seconds, distance_scale)
                 time.sleep(max(0.0, settle_seconds))
                 self.turn_to(sign * 90 * (index + 1))
                 time.sleep(max(0.0, settle_seconds))
         finally:
-            self.robot.stop()
+            self.stop()
 
     def _drive_square_side(
         self,
         side_cm: float,
         speed: float,
-        use_builtin_distance: bool,
+        use_distance_estimate: bool,
         forward_seconds: float | None,
         distance_scale: float,
     ) -> None:
-        if use_builtin_distance:
-            self.robot.move_x_by(side_cm * distance_scale, speed=speed)
+        if use_distance_estimate:
+            distance = side_cm * distance_scale
+            if distance == 0:
+                self.stop()
+                return
+            seconds = _distance_seconds(distance, speed)
+            self.drive.move_forward(math.copysign(abs(speed), distance), seconds)
             return
         seconds = forward_seconds if forward_seconds is not None else _distance_seconds(side_cm, speed)
-        self.robot.move("x", speed, seconds)
+        self.drive.move_forward(speed, seconds)
 
 
 def _angle_error(target: float, current: float) -> float:

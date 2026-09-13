@@ -10,6 +10,8 @@
 - 通过 OpenCV/Picamera2/ONNX Runtime 完成视觉识别。
 - 通过固定路线、yaw 闭环和视觉微调完成导航、抓取、投递。
 
+比赛移动动作集中在 `xgo26/competition_drive.py`：前进、后退和循迹航向微调只驱动四个轮子，原地角度转向仍使用机器狗正常步态。横移目前也保留厂家步态，后续按沙盘实测在这个文件内替换即可。
+
 当前阶段先做赛题研究和工程拆解，结论见：
 
 - `task_study.md`
@@ -131,6 +133,7 @@ drop_A_to_pick_area / drop_B_to_pick_area / drop_C_to_pick_area / drop_D_to_pick
 
 调参主要改 `config.json` 中：
 
+- `robot.drive.forward_input_max`、`turn_input_max`、`wheel_speed_max` 和模式切换等待时间。
 - `line_follow.seconds`、`speed`、`turn_gain`、`max_turn`、`line.roi_top_ratio`、`line.min_area`。
 - `turn_to.yaw` 和 `timeout`。
 - `yaw_hold_move.seconds`、`speed`、`yaw`、`turn_gain`。
@@ -138,6 +141,17 @@ drop_A_to_pick_area / drop_B_to_pick_area / drop_C_to_pick_area / drop_D_to_pick
 当前没有里程计，所有 `seconds`、横移方向和角度都只是按图 4-3 搭出的初始占位值，正式运行前必须逐段标定。
 
 ### 运行单项脚本
+
+先单独测试纯轮前进和正常步态转向：
+
+```bash
+python tools/test_drive_actions.py forward --speed 8 --seconds 1
+python tools/test_drive_actions.py backward --speed 8 --seconds 1
+python tools/test_drive_actions.py turn-left --angle 30
+python tools/test_drive_actions.py turn-right --angle 30
+```
+
+前两条会启用四轮独立控制，四条腿不执行行走步态；后两条会先退出轮控，再使用 IMU 闭环的正常转向。测试结束会停车并恢复到步态模式。
 
 打印 `config.json` 里的示例任务：
 
@@ -157,14 +171,14 @@ python tools/test_camera.py
 python tools/test_square_motion.py
 ```
 
-当前默认 `distance_scale=0.5`，用于修正实测 `move_x_by(50)` 约走 1m 的情况。若仍偏大或偏小，可以直接改缩放：
+当前纯轮模式没有里程计，`distance_scale=0.5` 暂时沿用原来的距离时间经验值。若仍偏大或偏小，可以直接改缩放：
 
 ```bash
 python tools/test_square_motion.py --distance-scale 0.45
 python tools/test_square_motion.py --distance-scale 0.6
 ```
 
-如果感觉厂家 `move_x_by` 距离估算不对，可以改用定时前进模式对比：
+也可以直接指定每条边的轮式前进时间：
 
 ```bash
 python tools/test_square_motion.py --timed --forward-seconds 2.3

@@ -2,6 +2,12 @@
   "robot": {
     "serial_port": "/dev/ttyAMA0",
     "model": "auto",
+    "drive": {
+      "forward_input_max": 30,
+      "turn_input_max": 80,
+      "wheel_speed_max": 1.2,
+      "switch_delay": 0.12
+    },
     "control": {
       "disable_wheel_control": true,
       "load_all_motors": true,
@@ -481,7 +487,7 @@
     "speed": 18,
     "turn_direction": "left",
     "settle_seconds": 0.5,
-    "use_builtin_distance": true,
+    "use_distance_estimate": true,
     "distance_scale": 0.5
   }
 }

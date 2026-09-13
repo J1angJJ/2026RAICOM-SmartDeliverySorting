@@ -87,7 +87,7 @@ def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
         detection = detect_colored_ball(frame, color, threshold)
         if detection is None:
             print("[action] ball not found, move forward")
-            robot.move("x", float(grasp_cfg.get("search_speed", 12)), 0.7)
+            motion.move("x", float(grasp_cfg.get("search_speed", 12)), 0.7)
             continue
 
         print(f"[action] {detection.summary()}")
@@ -99,14 +99,14 @@ def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
         if abs(err_x) >= tolerance_x:
             seconds = min(max_seconds, max(min_seconds, abs(err_x)))
             speed = float(grasp_cfg.get("lateral_speed", 10))
-            robot.move("y", speed if err_x < 0 else -speed, seconds)
+            motion.move("y", speed if err_x < 0 else -speed, seconds)
         else:
             seconds = min(max_seconds, max(min_seconds, abs(err_y)))
             if err_y < 0:
                 speed = float(grasp_cfg.get("backward_speed", -10))
             else:
                 speed = float(grasp_cfg.get("forward_speed", 12))
-            robot.move("x", speed, seconds)
+            motion.move("x", speed, seconds)
         if yaw_every > 0 and index % yaw_every == yaw_every - 1:
             motion.turn_to(0)
 

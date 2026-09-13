@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--timed",
         action="store_true",
-        help="不用厂家 move_x_by，改用定时 move_x；便于对比调试",
+        help="直接使用 --forward-seconds，不按边长估算轮式前进时间",
     )
     parser.add_argument(
         "--forward-seconds",
@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--distance-scale",
         type=float,
-        help="厂家 move_x_by 距离缩放；实测 move_x_by(50) 约走 1m 时可设为 0.5",
+        help="轮式前进距离估算缩放，默认读取 config.json",
     )
     parser.add_argument("--dry-run", action="store_true", help="只打印动作，不连接硬件")
     return parser.parse_args()
@@ -51,7 +51,7 @@ def main() -> None:
         model=config["robot"].get("model", "auto"),
         dry_run=args.dry_run,
     )
-    motion = Motion(robot)
+    motion = Motion(robot, config["robot"].get("drive", {}))
 
     try:
         robot.initialize_control_mode(config["robot"].get("control", {}))
@@ -60,7 +60,7 @@ def main() -> None:
             speed=float(args.speed if args.speed is not None else square_cfg.get("speed", 18)),
             turn_direction=str(args.turn_direction or square_cfg.get("turn_direction", "left")),
             settle_seconds=float(square_cfg.get("settle_seconds", 0.5)),
-            use_builtin_distance=not args.timed and bool(square_cfg.get("use_builtin_distance", True)),
+            use_distance_estimate=not args.timed and bool(square_cfg.get("use_distance_estimate", True)),
             forward_seconds=args.forward_seconds if args.forward_seconds is not None else square_cfg.get("forward_seconds"),
             distance_scale=float(
                 args.distance_scale if args.distance_scale is not None else square_cfg.get("distance_scale", 1.0)

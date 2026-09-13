@@ -20,7 +20,7 @@ class RuntimeState:
             model=config["robot"].get("model", "auto"),
             dry_run=dry_run,
         )
-        self.motion = Motion(self.robot)
+        self.motion = Motion(self.robot, config["robot"].get("drive", {}))
         self.lock = threading.Lock()
         self.job_name = "idle"
         self.job_started_at: float | None = None
@@ -50,7 +50,9 @@ class RuntimeState:
                 speed=float(payload.get("speed", square_cfg.get("speed", 18))),
                 turn_direction=str(payload.get("turn_direction", square_cfg.get("turn_direction", "left"))),
                 settle_seconds=float(payload.get("settle_seconds", square_cfg.get("settle_seconds", 0.5))),
-                use_builtin_distance=bool(payload.get("use_builtin_distance", square_cfg.get("use_builtin_distance", True))),
+                use_distance_estimate=bool(
+                    payload.get("use_distance_estimate", square_cfg.get("use_distance_estimate", True))
+                ),
                 forward_seconds=payload.get("forward_seconds", square_cfg.get("forward_seconds")),
                 distance_scale=float(payload.get("distance_scale", square_cfg.get("distance_scale", 1.0))),
             )

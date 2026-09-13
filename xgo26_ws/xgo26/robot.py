@@ -15,6 +15,7 @@ class Robot:
         self.model = model
         self.dry_run = dry_run
         self.dog: Any | None = None
+        self.wheel_control_enabled = False
         if dry_run:
             print(f"[robot] dry-run mode, serial={serial_port}, model={model}")
             return
@@ -48,6 +49,8 @@ class Robot:
         self.stop()
 
     def stop(self) -> None:
+        if self.wheel_control_enabled:
+            self._try_call("wheel_control", [128, 128, 128, 128])
         self._call("move_x", 0)
         self._call("move_y", 0)
         self._call("turn", 0)
@@ -105,7 +108,14 @@ class Robot:
         self._try_call("pace", mode)
 
     def enable_wheel_control(self, mode: int) -> None:
-        self._try_call("enable_wheel_control", int(mode))
+        enabled = int(mode)
+        if self._try_call("enable_wheel_control", enabled):
+            self.wheel_control_enabled = bool(enabled)
+
+    def wheel_control(self, values: list[int]) -> None:
+        if len(values) != 4:
+            raise ValueError("四轮控制必须提供 4 个速度值")
+        self._call("wheel_control", [max(0, min(255, int(value))) for value in values])
 
     def read_yaw(self) -> float:
         if self.dry_run or self.dog is None:
