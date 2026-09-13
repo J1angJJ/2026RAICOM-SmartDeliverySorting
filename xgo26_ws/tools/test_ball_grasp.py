@@ -81,7 +81,12 @@ def main() -> None:
         raise SystemExit(0 if detect_once(args.color, config, args.save_image) else 1)
 
     robot = Robot(config["robot"].get("serial_port", "/dev/ttyAMA0"), dry_run=args.dry_run)
-    motion = Motion(robot, config["robot"].get("drive", {}), config.get("camera", {}))
+    motion = Motion(
+        robot,
+        config["robot"].get("drive", {}),
+        config.get("camera", {}),
+        config.get("line_following", {}),
+    )
 
     if args.mode == "align":
         if not args.dry_run:

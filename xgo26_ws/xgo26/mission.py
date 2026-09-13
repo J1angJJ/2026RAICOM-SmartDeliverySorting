@@ -50,6 +50,7 @@ class MissionRunner:
             self.robot,
             config["robot"].get("drive", {}),
             config.get("camera", {}),
+            config.get("line_following", {}),
         )
         self.routes = config["mission"]["routes"]
         self.expected = list(config["mission"].get("expected_tasks", []))

@@ -41,6 +41,36 @@
     "height": 972,
     "warmup_frames": 2
   },
+  "line_following": {
+    "camera": {
+      "stream": "lores",
+      "width": 320,
+      "height": 240
+    },
+    "roi_top_ratio": 0.48,
+    "roi_bottom_ratio": 0.98,
+    "side_margin_ratio": 0.04,
+    "dark_threshold": 105,
+    "blur_size": 5,
+    "kernel_size": 3,
+    "scan_bands": [
+      [0.58, 0.66],
+      [0.72, 0.8],
+      [0.86, 0.96]
+    ],
+    "minimum_bands": 2,
+    "minimum_column_fill": 0.25,
+    "minimum_width_ratio": 0.006,
+    "maximum_width_ratio": 0.18,
+    "expected_width_ratio": 0.06,
+    "maximum_jump_ratio": 0.28,
+    "target_x_ratio": 0.5,
+    "center_weight": 0.75,
+    "heading_weight": 0.55,
+    "smoothing_alpha": 0.45,
+    "minimum_confidence": 0.35,
+    "memory_frames": 4
+  },
   "models": {
     "package_model": "models/package_letter.onnx",
     "letter_model": "models/ABCD.onnx"
@@ -87,14 +117,6 @@
             "width": 320,
             "height": 240,
             "warmup_frames": 5
-          },
-          "line": {
-            "roi_top_ratio": 0.55,
-            "adaptive": true,
-            "adaptive_block_size": 21,
-            "adaptive_c": 5,
-            "kernel_size": 5,
-            "min_area": 120
           },
           "note": "沿地面循迹线到第一个识别点，时长待场地标定"
         },
@@ -151,14 +173,6 @@
             "height": 240,
             "warmup_frames": 5
           },
-          "line": {
-            "roi_top_ratio": 0.55,
-            "adaptive": true,
-            "adaptive_block_size": 21,
-            "adaptive_c": 5,
-            "kernel_size": 5,
-            "min_area": 120
-          },
           "note": "沿地面循迹线到第二个识别点，时长待场地标定"
         },
         {
@@ -207,14 +221,6 @@
             "width": 320,
             "height": 240,
             "warmup_frames": 5
-          },
-          "line": {
-            "roi_top_ratio": 0.55,
-            "adaptive": true,
-            "adaptive_block_size": 21,
-            "adaptive_c": 5,
-            "kernel_size": 5,
-            "min_area": 120
           },
           "note": "沿外圈线走到靠近包裹抓取区的转入位置，终点待按地图标志或时间标定"
         },

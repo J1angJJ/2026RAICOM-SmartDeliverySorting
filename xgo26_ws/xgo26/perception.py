@@ -60,23 +60,6 @@ class BallDetection:
         )
 
 
-@dataclass(frozen=True)
-class LineDetection:
-    x: int
-    y: int
-    width: int
-    height: int
-    roi_top: int
-    area: float
-    normalized_x: float
-
-    def summary(self) -> str:
-        return (
-            f"line pixel=({self.x},{self.y}) norm_x={self.normalized_x:.2f} "
-            f"area={self.area:.0f}"
-        )
-
-
 def ball_color_for_package(package: str) -> str:
     if package in RED_PACKAGES:
         return "red"
@@ -199,70 +182,6 @@ def find_colored_ball(frame: Any, threshold: list[int]) -> tuple[int, int, int] 
     if radius < 5:
         return None
     return int(x), int(y), int(radius)
-
-
-def detect_black_line(frame: Any, config: dict | None = None) -> LineDetection | None:
-    import cv2
-    import numpy as np
-
-    cfg = config or {}
-    height, width = frame.shape[:2]
-    roi_top_ratio = float(cfg.get("roi_top_ratio", 0.55))
-    roi_top = int(height * roi_top_ratio)
-    roi = frame[roi_top:, :]
-    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (5, 5), 0)
-
-    if cfg.get("adaptive", True):
-        block_size = int(cfg.get("adaptive_block_size", 21))
-        if block_size % 2 == 0:
-            block_size += 1
-        block_size = max(3, block_size)
-        mask = cv2.adaptiveThreshold(
-            gray,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV,
-            block_size,
-            int(cfg.get("adaptive_c", 5)),
-        )
-    else:
-        _, mask = cv2.threshold(
-            gray,
-            int(cfg.get("threshold", 80)),
-            255,
-            cv2.THRESH_BINARY_INV,
-        )
-
-    kernel_size = int(cfg.get("kernel_size", 5))
-    kernel = np.ones((kernel_size, kernel_size), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return None
-
-    contour = max(contours, key=cv2.contourArea)
-    area = float(cv2.contourArea(contour))
-    if area < float(cfg.get("min_area", 120)):
-        return None
-
-    moments = cv2.moments(contour)
-    if moments["m00"] == 0:
-        return None
-
-    x = int(moments["m10"] / moments["m00"])
-    y = int(moments["m01"] / moments["m00"]) + roi_top
-    return LineDetection(
-        x=x,
-        y=y,
-        width=width,
-        height=height,
-        roi_top=roi_top,
-        area=area,
-        normalized_x=2 * x / width - 1,
-    )
 
 
 def detect_colored_ball(frame: Any, color: str, threshold: list[int]) -> BallDetection | None:

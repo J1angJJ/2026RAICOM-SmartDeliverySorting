@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 from .camera import CameraReader
 from .competition_drive import CompetitionDrive
-from .perception import detect_black_line
+from .line_following import LineTracker
 from .robot import Robot
 
 
@@ -16,10 +16,12 @@ class Motion:
         robot: Robot,
         drive_config: dict | None = None,
         camera_config: dict | None = None,
+        line_config: dict | None = None,
     ):
         self.robot = robot
         self.drive = CompetitionDrive(robot, drive_config)
         self.camera_config = camera_config or {}
+        self.line_config = line_config or {}
         self.start_yaw = robot.read_yaw()
         self.prev_error: float | None = None
         self.integral = 0.0
@@ -171,16 +173,24 @@ class Motion:
             time.sleep(min(seconds, 0.2))
             return
 
-        camera_cfg = {**self.camera_config, **config.get("camera", {})}
-        line_cfg = config.get("line", {})
+        line_cfg = {**self.line_config, **config.get("line", {})}
+        camera_cfg = {
+            **self.camera_config,
+            **line_cfg.get("camera", {}),
+            **config.get("camera", {}),
+        }
         turn_gain = float(config.get("turn_gain", 45))
         max_turn = abs(float(config.get("max_turn", 35)))
         sample_seconds = float(config.get("sample_seconds", 0.08))
         lost_speed = float(config.get("lost_speed", 0))
         lost_turn = float(config.get("lost_turn", 0))
         max_lost_frames = int(config.get("max_lost_frames", 12))
+        minimum_speed_ratio = float(config.get("minimum_speed_ratio", 0.55))
+        turn_slowdown = float(config.get("turn_slowdown", 0.65))
+        steering_deadband = abs(float(config.get("steering_deadband", 0.025)))
 
         lost_frames = 0
+        tracker = LineTracker(line_cfg)
         start = time.time()
         try:
             with CameraReader(
@@ -195,7 +205,7 @@ class Motion:
             ) as reader:
                 while time.time() - start < seconds:
                     frame = reader.read()
-                    detection = detect_black_line(frame, line_cfg) if frame is not None else None
+                    detection = tracker.process(frame) if frame is not None else None
                     if detection is None:
                         lost_frames += 1
                         self.drive.wheel_drive(forward=lost_speed, yaw=lost_turn)
@@ -204,8 +214,15 @@ class Motion:
                             break
                     else:
                         lost_frames = 0
-                        turn_speed = _clamp(detection.normalized_x * turn_gain, -max_turn, max_turn)
-                        self.drive.wheel_drive(forward=speed, yaw=turn_speed)
+                        steering = detection.steering_error
+                        if abs(steering) < steering_deadband:
+                            steering = 0.0
+                        turn_speed = _clamp(steering * turn_gain, -max_turn, max_turn)
+                        speed_ratio = max(
+                            minimum_speed_ratio,
+                            1.0 - min(1.0, abs(steering)) * turn_slowdown,
+                        )
+                        self.drive.wheel_drive(forward=speed * speed_ratio, yaw=turn_speed)
                     time.sleep(sample_seconds)
         finally:
             self.stop()

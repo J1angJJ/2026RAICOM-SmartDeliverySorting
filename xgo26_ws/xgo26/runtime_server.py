@@ -24,6 +24,7 @@ class RuntimeState:
             self.robot,
             config["robot"].get("drive", {}),
             config.get("camera", {}),
+            config.get("line_following", {}),
         )
         self.lock = threading.Lock()
         self.job_name = "idle"

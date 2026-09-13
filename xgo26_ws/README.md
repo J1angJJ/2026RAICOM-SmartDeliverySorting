@@ -189,6 +189,16 @@ python tools/test_camera.py --stream main
 python tools/test_camera.py --direct
 ```
 
+只检查循迹视觉，不初始化机器狗或发送运动指令：
+
+```bash
+python tools/test_line_vision.py
+python tools/test_line_vision.py --input debug/example.jpg --output debug/line_debug.jpg
+```
+
+输出图左侧为扫描点和目标中心，右侧为黑线掩码。循迹参数集中在
+`config.json` 的 `line_following`，路线步骤只保留速度、时长和转向幅度等运动参数。
+
 测试 50cm 正方形运动：
 
 ```bash
