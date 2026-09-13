@@ -98,18 +98,44 @@ curl -X POST http://127.0.0.1:8767/stop
 
 ```text
 BOOT_CHECK
-FOLLOW_TO_RECOGNITION_1
+FOLLOW_TO_INSPECTION_1
 DETECT_PACKAGE_1
-FOLLOW_TO_RECOGNITION_2
+RETURN_TO_LINE_1
+FOLLOW_TO_INSPECTION_2
 DETECT_PACKAGE_2
-GO_TO_PICK_AREA
-PICK_AND_DELIVER
+RETURN_TO_LINE_2
+FOLLOW_TO_PICK_BRANCH
+ENTER_PICK_AREA
+PICK_BALL
+DELIVER_BALL
 RETURN_TO_PICK_AREA
-PICK_AND_DELIVER
+PICK_BALL
+DELIVER_BALL
 FINISH
 ```
 
-从出发区到两个识别点的路线已按地面循迹线编排。调参主要改 `config.json` 中 `line_follow` 步骤的 `seconds`、`speed`、`turn_gain`、`max_turn`、`line.roi_top_ratio` 和 `line.min_area`；到点后转身识别的角度改对应 `turn_to.yaw`。
+从出发区到两个识别点、再到包裹抓取区入口的路线已按地面循迹线编排。离开循迹线后的包裹抓取、A/B/C/D 投放和返回抓取区先按短时标定动作编排，后续由视觉微调和现场参数补强。
+
+核心路线名：
+
+```text
+start_to_recognition_1
+recognition_1_to_line
+recognition_1_to_recognition_2
+recognition_2_to_line
+recognition_2_to_pick_area
+enter_pick_area
+drop_A / drop_B / drop_C / drop_D
+drop_A_to_pick_area / drop_B_to_pick_area / drop_C_to_pick_area / drop_D_to_pick_area
+```
+
+调参主要改 `config.json` 中：
+
+- `line_follow.seconds`、`speed`、`turn_gain`、`max_turn`、`line.roi_top_ratio`、`line.min_area`。
+- `turn_to.yaw` 和 `timeout`。
+- `yaw_hold_move.seconds`、`speed`、`yaw`、`turn_gain`。
+
+当前没有里程计，所有 `seconds`、横移方向和角度都只是按图 4-3 搭出的初始占位值，正式运行前必须逐段标定。
 
 ### 运行单项脚本
 

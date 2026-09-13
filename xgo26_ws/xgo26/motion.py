@@ -16,6 +16,12 @@ class Motion:
         self.prev_error: float | None = None
         self.integral = 0.0
 
+    def reset_yaw_origin(self) -> None:
+        self.start_yaw = self.robot.read_yaw()
+        self.prev_error = None
+        self.integral = 0.0
+        print(f"[motion] yaw origin reset: {self.start_yaw:.1f}")
+
     def turn_to(self, target_deg: float, timeout: float = 6.0) -> None:
         if self.robot.dry_run:
             print(f"[motion] turn_to {target_deg}")
@@ -49,8 +55,20 @@ class Motion:
                     speed=float(step.get("speed", 0)),
                     seconds=float(step.get("seconds", 0)),
                 )
+            elif kind == "move_by":
+                self.move_by(step)
+            elif kind == "yaw_hold_move":
+                self.yaw_hold_move(
+                    axis=str(step.get("axis", "x")),
+                    speed=float(step.get("speed", 0)),
+                    seconds=float(step.get("seconds", 0)),
+                    yaw=float(step.get("yaw", 0)),
+                    turn_gain=float(step.get("turn_gain", 1.0)),
+                    max_turn=float(step.get("max_turn", 28)),
+                    sample_seconds=float(step.get("sample_seconds", 0.08)),
+                )
             elif kind == "turn_to":
-                self.turn_to(float(step.get("yaw", 0)))
+                self.turn_to(float(step.get("yaw", 0)), timeout=float(step.get("timeout", 6.0)))
             elif kind == "line_follow":
                 self.follow_line(
                     seconds=float(step.get("seconds", 0)),
@@ -59,8 +77,66 @@ class Motion:
                 )
             elif kind == "wait":
                 time.sleep(float(step.get("seconds", 0)))
+            elif kind == "stop":
+                self.robot.stop()
+                time.sleep(float(step.get("seconds", 0.2)))
+            elif kind == "mark":
+                print(f"[motion] mark {step.get('name', '')}".rstrip())
             else:
                 print(f"[motion] skip unknown route step: {step}")
+
+    def move_by(self, step: dict) -> None:
+        axis = str(step.get("axis", "x"))
+        distance = float(step.get("distance_cm", 0))
+        speed = float(step.get("speed", 18))
+        scale = float(step.get("distance_scale", 1.0))
+        if axis == "x":
+            self.robot.move_x_by(distance * scale, speed=speed)
+            return
+        if axis == "y":
+            self.robot.move_y_by(distance * scale, speed=speed)
+            return
+        raise ValueError(f"未知移动轴: {axis}")
+
+    def yaw_hold_move(
+        self,
+        axis: str,
+        speed: float,
+        seconds: float,
+        yaw: float,
+        turn_gain: float = 1.0,
+        max_turn: float = 28,
+        sample_seconds: float = 0.08,
+    ) -> None:
+        print(
+            f"[motion] yaw_hold_move axis={axis} speed={speed:.1f} "
+            f"seconds={seconds:.1f} yaw={yaw:.1f}"
+        )
+        if seconds <= 0:
+            return
+        if axis not in {"x", "y"}:
+            raise ValueError(f"未知移动轴: {axis}")
+        if self.robot.dry_run:
+            time.sleep(min(seconds, 0.2))
+            return
+
+        start = time.time()
+        try:
+            while time.time() - start < seconds:
+                current = self.robot.read_yaw() - self.start_yaw
+                error = _angle_error(yaw, current)
+                turn_speed = _clamp(error * turn_gain, -abs(max_turn), abs(max_turn))
+                if axis == "x":
+                    self.robot.set_move_x(speed)
+                    self.robot.set_move_y(0)
+                else:
+                    self.robot.set_move_y(speed)
+                    self.robot.set_move_x(0)
+                self.robot.turn(turn_speed)
+                time.sleep(sample_seconds)
+        finally:
+            self.robot.stop()
+            time.sleep(0.2)
 
     def follow_line(self, seconds: float, speed: float, config: dict) -> None:
         print(f"[motion] line_follow seconds={seconds:.1f} speed={speed:.1f}")

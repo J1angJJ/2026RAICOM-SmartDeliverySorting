@@ -15,12 +15,16 @@ from .robot import Robot
 
 class MissionState(str, Enum):
     BOOT_CHECK = "BOOT_CHECK"
-    FOLLOW_TO_RECOGNITION_1 = "FOLLOW_TO_RECOGNITION_1"
+    FOLLOW_TO_INSPECTION_1 = "FOLLOW_TO_INSPECTION_1"
     DETECT_PACKAGE_1 = "DETECT_PACKAGE_1"
-    FOLLOW_TO_RECOGNITION_2 = "FOLLOW_TO_RECOGNITION_2"
+    RETURN_TO_LINE_1 = "RETURN_TO_LINE_1"
+    FOLLOW_TO_INSPECTION_2 = "FOLLOW_TO_INSPECTION_2"
     DETECT_PACKAGE_2 = "DETECT_PACKAGE_2"
-    GO_TO_PICK_AREA = "GO_TO_PICK_AREA"
-    PICK_AND_DELIVER = "PICK_AND_DELIVER"
+    RETURN_TO_LINE_2 = "RETURN_TO_LINE_2"
+    FOLLOW_TO_PICK_BRANCH = "FOLLOW_TO_PICK_BRANCH"
+    ENTER_PICK_AREA = "ENTER_PICK_AREA"
+    PICK_BALL = "PICK_BALL"
+    DELIVER_BALL = "DELIVER_BALL"
     RETURN_TO_PICK_AREA = "RETURN_TO_PICK_AREA"
     FINISH = "FINISH"
 
@@ -52,22 +56,32 @@ class MissionRunner:
         try:
             self.enter(MissionState.BOOT_CHECK)
             self.boot_check()
-            self.enter(MissionState.FOLLOW_TO_RECOGNITION_1)
+            self.enter(MissionState.FOLLOW_TO_INSPECTION_1)
             self.go("start_to_recognition_1")
             self.enter(MissionState.DETECT_PACKAGE_1)
             self.detect_package(0)
-            self.enter(MissionState.FOLLOW_TO_RECOGNITION_2)
+            self.enter(MissionState.RETURN_TO_LINE_1)
+            self.go_optional("recognition_1_to_line")
+            self.enter(MissionState.FOLLOW_TO_INSPECTION_2)
             self.go("recognition_1_to_recognition_2")
             self.enter(MissionState.DETECT_PACKAGE_2)
             self.detect_package(1)
-            self.enter(MissionState.GO_TO_PICK_AREA)
+            self.enter(MissionState.RETURN_TO_LINE_2)
+            self.go_optional("recognition_2_to_line")
+            self.enter(MissionState.FOLLOW_TO_PICK_BRANCH)
             self.go("recognition_2_to_pick_area")
+            self.enter(MissionState.ENTER_PICK_AREA)
+            self.go_optional("enter_pick_area")
             for index, task in enumerate(self.tasks):
-                self.enter(MissionState.PICK_AND_DELIVER)
-                self.pick_and_deliver(task)
-                if index == 0:
+                self.enter(MissionState.PICK_BALL)
+                self.pick_ball(task)
+                self.enter(MissionState.DELIVER_BALL)
+                self.deliver_ball(task)
+                if index < len(self.tasks) - 1:
                     self.enter(MissionState.RETURN_TO_PICK_AREA)
-                    self.go("return_to_pick_area")
+                    self.go(f"drop_{task.letter}_to_pick_area")
+            if self.tasks:
+                self.go_optional(f"drop_{self.tasks[-1].letter}_to_finish")
             self.enter(MissionState.FINISH)
             self.finish(started)
         except KeyboardInterrupt:
@@ -87,6 +101,7 @@ class MissionRunner:
         if battery is not None:
             print(f"[mission] battery={battery}%")
         self.robot.initialize_control_mode(self.config["robot"].get("control", {}))
+        self.motion.reset_yaw_origin()
         prepare_for_mission(self.robot)
 
     def go(self, route_name: str) -> None:
@@ -96,6 +111,12 @@ class MissionRunner:
             raise KeyError(f"未配置路线: {route_name}")
         self.motion.run_route(route_name, route)
 
+    def go_optional(self, route_name: str) -> None:
+        if route_name not in self.routes:
+            print(f"[mission] SKIP optional route {route_name}")
+            return
+        self.go(route_name)
+
     def detect_package(self, index: int) -> None:
         print(f"[mission] DETECT_PACKAGE_{index + 1}")
         expected = self.expected[index] if self.use_expected and index < len(self.expected) else None
@@ -104,12 +125,15 @@ class MissionRunner:
         speak_task(task, dry_run=self.dry_run)
         self.tasks.append(task)
 
-    def pick_and_deliver(self, task: DeliveryTask) -> None:
-        print(f"[mission] PICK_AND_DELIVER {task.summary()}")
+    def pick_ball(self, task: DeliveryTask) -> None:
+        print(f"[mission] PICK_BALL {task.summary()}")
         grasp_ball(self.robot, self.motion, task.ball_color, self.config)
         print("[mission] hold ball for 3 seconds")
         if not self.dry_run:
             time.sleep(3.0)
+
+    def deliver_ball(self, task: DeliveryTask) -> None:
+        print(f"[mission] DELIVER_BALL {task.summary()}")
         route_name = f"drop_{task.letter}"
         self.go(route_name)
         place_task(self.robot, task, self.config)

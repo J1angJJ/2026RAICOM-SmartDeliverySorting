@@ -25,6 +25,11 @@
     "frames": 3
   },
   "mission": {
+    "map_notes": [
+      "图 4-3 场地：左上出发区，黑色循迹线沿外圈运行，右侧有识别区1/2，左中为包裹放置区 A/B/C/D，下方为包裹抓取区。",
+      "当前没有里程计，路线按循迹段、yaw闭环转向、短时标定动作和视觉局部闭环组织。",
+      "seconds、speed、yaw 和横移时间均为占位参数，拿到正式地图后逐段标定。"
+    ],
     "expected_tasks": [
       {
         "letter": "A",
@@ -38,11 +43,15 @@
     "routes": {
       "start_to_recognition_1": [
         {
+          "kind": "mark",
+          "name": "出发区沿黑线到识别区1观察点"
+        },
+        {
           "kind": "line_follow",
-          "speed": 10,
-          "seconds": 4.0,
+          "speed": 9,
+          "seconds": 3.5,
           "turn_gain": 45,
-          "max_turn": 35,
+          "max_turn": 32,
           "lost_speed": 0,
           "lost_turn": 0,
           "max_lost_frames": 12,
@@ -63,26 +72,52 @@
           "note": "沿地面循迹线到第一个识别点，时长待场地标定"
         },
         {
+          "kind": "stop",
+          "seconds": 0.3
+        },
+        {
           "kind": "turn_to",
-          "yaw": -45,
-          "note": "到点后转向识别KT板，角度待标定"
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "面向识别区1，角度待按实际相机安装和识别牌位置标定"
+        },
+        {
+          "kind": "wait",
+          "seconds": 0.6
+        }
+      ],
+      "recognition_1_to_line": [
+        {
+          "kind": "turn_to",
+          "yaw": 0,
+          "timeout": 5.0,
+          "note": "识别区1结束后回到外圈循迹方向"
+        },
+        {
+          "kind": "wait",
+          "seconds": 0.3
         }
       ],
       "recognition_1_to_recognition_2": [
         {
+          "kind": "mark",
+          "name": "识别区1到识别区2观察点"
+        },
+        {
           "kind": "turn_to",
           "yaw": 0,
-          "note": "识别后回正到循迹方向"
+          "timeout": 5.0,
+          "note": "保证从外圈循迹方向继续出发"
         },
         {
           "kind": "line_follow",
-          "speed": 10,
-          "seconds": 4.0,
+          "speed": 8,
+          "seconds": 5.0,
           "turn_gain": 45,
           "max_turn": 35,
           "lost_speed": 0,
           "lost_turn": 0,
-          "max_lost_frames": 12,
+          "max_lost_frames": 16,
           "camera": {
             "index": 0,
             "width": 320,
@@ -100,68 +135,321 @@
           "note": "沿地面循迹线到第二个识别点，时长待场地标定"
         },
         {
+          "kind": "stop",
+          "seconds": 0.3
+        },
+        {
           "kind": "turn_to",
-          "yaw": -45,
-          "note": "到点后转向识别KT板，角度待标定"
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "面向识别区2，角度待按实际相机安装和识别牌位置标定"
+        },
+        {
+          "kind": "wait",
+          "seconds": 0.6
+        }
+      ],
+      "recognition_2_to_line": [
+        {
+          "kind": "turn_to",
+          "yaw": 0,
+          "timeout": 5.0,
+          "note": "识别区2结束后回到外圈循迹方向"
+        },
+        {
+          "kind": "wait",
+          "seconds": 0.3
         }
       ],
       "recognition_2_to_pick_area": [
         {
-          "kind": "turn_to",
-          "yaw": -90,
-          "note": "占位路线，待实地标定"
+          "kind": "mark",
+          "name": "从外圈线到包裹抓取区入口"
         },
         {
-          "kind": "move",
+          "kind": "line_follow",
+          "speed": 8,
+          "seconds": 4.5,
+          "turn_gain": 45,
+          "max_turn": 35,
+          "lost_speed": 0,
+          "lost_turn": 0,
+          "max_lost_frames": 16,
+          "camera": {
+            "index": 0,
+            "width": 320,
+            "height": 240,
+            "warmup_frames": 5
+          },
+          "line": {
+            "roi_top_ratio": 0.55,
+            "adaptive": true,
+            "adaptive_block_size": 21,
+            "adaptive_c": 5,
+            "kernel_size": 5,
+            "min_area": 120
+          },
+          "note": "沿外圈线走到靠近包裹抓取区的转入位置，终点待按地图标志或时间标定"
+        },
+        {
+          "kind": "stop",
+          "seconds": 0.3
+        }
+      ],
+      "enter_pick_area": [
+        {
+          "kind": "turn_to",
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "离开循迹线，面向场地内部/包裹抓取区"
+        },
+        {
+          "kind": "yaw_hold_move",
           "axis": "x",
-          "speed": 12,
-          "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "speed": 8,
+          "seconds": 1.4,
+          "yaw": -90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "进入包裹抓取区，之后由抓球视觉闭环细调"
+        },
+        {
+          "kind": "stop",
+          "seconds": 0.3
         }
       ],
       "drop_A": [
         {
-          "kind": "move",
+          "kind": "mark",
+          "name": "从抓取区到 A 投放点"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": 90,
+          "timeout": 5.0,
+          "note": "朝向包裹放置区"
+        },
+        {
+          "kind": "yaw_hold_move",
           "axis": "x",
-          "speed": 12,
+          "speed": 8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "到达 A/B/C/D 投放横排前方"
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": 8,
           "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "横向对准 A 位，方向和时间待标定"
         }
       ],
       "drop_B": [
         {
-          "kind": "move",
+          "kind": "mark",
+          "name": "从抓取区到 B 投放点"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": 90,
+          "timeout": 5.0
+        },
+        {
+          "kind": "yaw_hold_move",
           "axis": "x",
-          "speed": 12,
-          "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "speed": 8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": 8,
+          "seconds": 0.35,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "横向对准 B 位，方向和时间待标定"
         }
       ],
       "drop_C": [
         {
-          "kind": "move",
+          "kind": "mark",
+          "name": "从抓取区到 C 投放点"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": 90,
+          "timeout": 5.0
+        },
+        {
+          "kind": "yaw_hold_move",
           "axis": "x",
-          "speed": 12,
-          "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "speed": 8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": -8,
+          "seconds": 0.35,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "横向对准 C 位，方向和时间待标定"
         }
       ],
       "drop_D": [
         {
-          "kind": "move",
+          "kind": "mark",
+          "name": "从抓取区到 D 投放点"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": 90,
+          "timeout": 5.0
+        },
+        {
+          "kind": "yaw_hold_move",
           "axis": "x",
-          "speed": 12,
+          "speed": 8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": -8,
           "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "横向对准 D 位，方向和时间待标定"
         }
       ],
-      "return_to_pick_area": [
+      "drop_A_to_pick_area": [
         {
-          "kind": "move",
-          "axis": "x",
-          "speed": -12,
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": -8,
           "seconds": 1.0,
-          "note": "占位路线，待实地标定"
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "撤销 A 位横向偏移，待标定"
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "x",
+          "speed": -8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "从 A 投放点退回包裹抓取区，待标定"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "重新面向待抓取小球"
+        }
+      ],
+      "drop_B_to_pick_area": [
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": -8,
+          "seconds": 0.35,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "撤销 B 位横向偏移，待标定"
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "x",
+          "speed": -8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "从 B 投放点退回包裹抓取区，待标定"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "重新面向待抓取小球"
+        }
+      ],
+      "drop_C_to_pick_area": [
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": 8,
+          "seconds": 0.35,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "撤销 C 位横向偏移，待标定"
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "x",
+          "speed": -8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "从 C 投放点退回包裹抓取区，待标定"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "重新面向待抓取小球"
+        }
+      ],
+      "drop_D_to_pick_area": [
+        {
+          "kind": "yaw_hold_move",
+          "axis": "y",
+          "speed": 8,
+          "seconds": 1.0,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "撤销 D 位横向偏移，待标定"
+        },
+        {
+          "kind": "yaw_hold_move",
+          "axis": "x",
+          "speed": -8,
+          "seconds": 1.6,
+          "yaw": 90,
+          "turn_gain": 1.0,
+          "max_turn": 24,
+          "note": "从 D 投放点退回包裹抓取区，待标定"
+        },
+        {
+          "kind": "turn_to",
+          "yaw": -90,
+          "timeout": 5.0,
+          "note": "重新面向待抓取小球"
         }
       ]
     }
