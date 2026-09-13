@@ -149,6 +149,8 @@ class Motion:
             time.sleep(min(seconds, 0.2))
             return
 
+        if axis == "x":
+            self.drive.use_wheel_posture("neutral")
         start = time.time()
         try:
             while time.time() - start < seconds:
@@ -176,6 +178,7 @@ class Motion:
             return
 
         line_cfg = {**self.line_config, **config.get("line", {})}
+        self.drive.use_wheel_posture(str(line_cfg.get("wheel_posture", "view_down")))
         camera_cfg = {
             **self.camera_config,
             **line_cfg.get("camera", {}),
@@ -245,6 +248,7 @@ class Motion:
                     time.sleep(sample_seconds)
         finally:
             self.stop()
+            self.drive.use_gait_mode()
             time.sleep(0.2)
 
     def drive_square(

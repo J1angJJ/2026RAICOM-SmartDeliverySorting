@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
-import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -18,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="单独测试比赛前进和转向动作")
     parser.add_argument(
         "action",
-        choices=["forward", "backward", "turn-left", "turn-right", "view-down"],
+        choices=["forward", "backward", "turn-left", "turn-right"],
     )
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--speed", type=float, default=8, help="前进/后退速度参数")
@@ -52,11 +51,8 @@ def main() -> None:
             motion.move("x", -abs(args.speed), args.seconds)
         elif args.action == "turn-left":
             motion.turn_to(abs(args.angle))
-        elif args.action == "turn-right":
-            motion.turn_to(-abs(args.angle))
         else:
-            motion.drive.use_wheel_posture("view_down")
-            time.sleep(max(0.0, args.seconds))
+            motion.turn_to(-abs(args.angle))
     finally:
         motion.stop()
         motion.drive.use_gait_mode()

@@ -178,11 +178,11 @@ python tools/test_drive_actions.py turn-right --angle 30
 测试低头四轮姿态；该命令不让轮子转动，保持指定秒数后恢复中立步态：
 
 ```bash
-python tools/test_drive_actions.py view-down --seconds 5
+python tools/test_wheel_posture.py --pitch 15 --seconds 5
 ```
 
-`view_down` 使用厂商循迹例程采用的最低机身高度 `75 mm` 和最大前倾角
-`+15°`。姿态参数位于 `robot.drive.wheel_postures`，首次实测时应扶稳机器狗并确认四轮均正常承重。
+`view_down` 保持正常机身高度 `95 mm`，使用厂商循迹例程采用的最大前倾角
+`+15°`。三段循迹默认保持该姿态并使用纯四轮前进；切换到步态转弯时自动恢复中立姿态。普通 `move`、`move_by` 和纵向 `yaw_hold_move` 使用中立四轮姿态。参数位于 `robot.drive.wheel_postures`，首次实测时应扶稳机器狗并确认四轮均正常承重。
 
 打印 `config.json` 里的示例任务：
 

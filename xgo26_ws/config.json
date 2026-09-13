@@ -14,7 +14,7 @@
           "settle_seconds": 0.4
         },
         "view_down": {
-          "height": 75,
+          "height": 95,
           "pitch": 15,
           "settle_seconds": 0.6
         }
@@ -54,6 +54,7 @@
     "warmup_frames": 2
   },
   "line_following": {
+    "wheel_posture": "view_down",
     "camera": {
       "stream": "lores",
       "width": 320,

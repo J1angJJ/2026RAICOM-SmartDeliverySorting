@@ -37,6 +37,7 @@ class CompetitionDrive:
     def move_forward(self, speed: float, seconds: float) -> None:
         if seconds <= 0:
             return
+        self.use_wheel_posture("neutral")
         self.forward(speed)
         try:
             time.sleep(seconds)
@@ -65,11 +66,16 @@ class CompetitionDrive:
 
     def use_wheel_posture(self, name: str) -> None:
         """Enter wheel mode and apply a stable body pose without driving the wheels."""
+        if name == "neutral" and name not in self.wheel_postures:
+            self._enter_wheel_mode()
+            self._posture = "neutral"
+            return
         if name not in self.wheel_postures:
             raise ValueError(f"未知四轮姿态: {name}")
         self._enter_wheel_mode()
-        self.stop()
-        self._apply_posture(name)
+        if self._posture != name:
+            self.stop()
+            self._apply_posture(name)
 
     def _enter_wheel_mode(self) -> None:
         if self._mode == "wheel":
