@@ -77,12 +77,15 @@ class BallDetection:
         tolerance_x: float,
         target_top_ratio: float,
         tolerance_top_ratio: float,
+        target_width_ratio: float,
+        tolerance_width_ratio: float,
         min_width_ratio: float,
         require_bottom: bool = True,
     ) -> bool:
         return (
             abs(self.box_center_x_normalized - target_x) <= tolerance_x
             and abs(self.box_top_ratio - target_top_ratio) <= tolerance_top_ratio
+            and abs(self.box_width_ratio - target_width_ratio) <= tolerance_width_ratio
             and self.box_width_ratio >= min_width_ratio
             and (self.touches_bottom or not require_bottom)
         )

@@ -66,10 +66,12 @@ def detect_ball_once(color: str, config: dict) -> tuple[bool, BallDetection | No
 def ball_ready_for_grasp(detection: BallDetection, config: dict) -> bool:
     grasp_cfg = config.get("grasp", {})
     return detection.ready_for_grasp(
-        target_x=float(grasp_cfg.get("target_x", -0.14)),
-        tolerance_x=float(grasp_cfg.get("tolerance_x", 0.15)),
-        target_top_ratio=float(grasp_cfg.get("ready_target_top_ratio", 0.89)),
-        tolerance_top_ratio=float(grasp_cfg.get("ready_tolerance_top_ratio", 0.07)),
+        target_x=float(grasp_cfg.get("target_x", -0.09)),
+        tolerance_x=float(grasp_cfg.get("tolerance_x", 0.08)),
+        target_top_ratio=float(grasp_cfg.get("ready_target_top_ratio", 0.75)),
+        tolerance_top_ratio=float(grasp_cfg.get("ready_tolerance_top_ratio", 0.05)),
+        target_width_ratio=float(grasp_cfg.get("ready_target_width_ratio", 0.23)),
+        tolerance_width_ratio=float(grasp_cfg.get("ready_tolerance_width_ratio", 0.04)),
         min_width_ratio=float(grasp_cfg.get("ready_min_width_ratio", 0.16)),
         require_bottom=bool(grasp_cfg.get("ready_require_bottom", True)),
     )
@@ -126,10 +128,9 @@ def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
                 motion.move("y", speed if err_x < 0 else -speed, seconds)
             else:
                 if detection.touches_bottom:
-                    distance_error = (
-                        detection.box_top_ratio
-                        - float(grasp_cfg.get("ready_target_top_ratio", 0.89))
-                    )
+                    distance_error = float(
+                        grasp_cfg.get("ready_target_width_ratio", 0.23)
+                    ) - detection.box_width_ratio
                 else:
                     distance_error = 1.0
                 seconds = min(max_seconds, max(min_seconds, abs(distance_error)))
