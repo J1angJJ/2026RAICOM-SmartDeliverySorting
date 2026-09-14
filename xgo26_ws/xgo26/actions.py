@@ -111,8 +111,11 @@ def align_ball_for_body_down(
     width_tolerance = float(grasp_cfg.get("approach_tolerance_width_ratio", 0.03))
     max_steps = max(1, int(grasp_cfg.get("approach_max_steps", 10)))
     stable_required = max(1, int(grasp_cfg.get("approach_stable_frames", 2)))
+    turn_gain = abs(float(grasp_cfg.get("approach_turn_gain_deg", 8)))
+    turn_min_angle = abs(float(grasp_cfg.get("approach_turn_min_deg", 1)))
+    turn_max_angle = abs(float(grasp_cfg.get("approach_turn_max_deg", 3)))
     turn_speed = abs(float(grasp_cfg.get("approach_turn_speed", 20)))
-    turn_seconds = max(0.0, float(grasp_cfg.get("approach_turn_seconds", 0.2)))
+    turn_tolerance = abs(float(grasp_cfg.get("approach_turn_tolerance_deg", 0.7)))
     forward_speed = abs(float(grasp_cfg.get("approach_forward_speed", 20)))
     forward_seconds = max(0.0, float(grasp_cfg.get("approach_forward_seconds", 0.15)))
     backward_speed = abs(float(grasp_cfg.get("approach_backward_speed", 15)))
@@ -165,17 +168,26 @@ def align_ball_for_body_down(
                 print("[action] approach alignment reached step limit")
                 return False
             if abs(horizontal_error) > tolerance_x:
-                yaw = turn_speed if horizontal_error > 0 else -turn_speed
-                direction = "right" if yaw < 0 else "left"
-                pulse_seconds = min(
-                    turn_seconds,
-                    max(0.1, abs(horizontal_error) * 0.8),
+                magnitude = min(
+                    turn_max_angle,
+                    max(turn_min_angle, abs(horizontal_error) * turn_gain),
                 )
-                print(f"[action] approach pulse turn-{direction} {pulse_seconds:.2f}s")
+                angle = magnitude if horizontal_error > 0 else -magnitude
+                direction = "left" if angle > 0 else "right"
+                print(f"[action] approach imu turn-{direction} {magnitude:.1f}deg")
                 motion.stop()
-                motion.drive.gait_drive(0, yaw, posture=posture)
-                time.sleep(pulse_seconds)
-                motion.stop()
+                try:
+                    motion.turn_relative_low(
+                        angle,
+                        timeout=3.0,
+                        posture=posture,
+                        coarse_speed=turn_speed,
+                        fine_speed=turn_speed,
+                        tolerance=turn_tolerance,
+                    )
+                except TimeoutError as exc:
+                    print(f"[action] approach turn failed: {exc}")
+                    return False
             elif (
                 not detection.touches_bottom
                 or detection.box_width_ratio < target_width - width_tolerance
