@@ -23,6 +23,7 @@ from xgo26.actions import (
     stow_grasp_arm,
 )
 from xgo26.camera import capture_frame_from_config
+from xgo26.competition_drive import CompetitionDrive
 from xgo26.config import load_config, resolve_path
 from xgo26.motion import Motion
 from xgo26.perception import detect_colored_ball, save_ball_debug_image
@@ -43,6 +44,7 @@ def parse_args() -> argparse.Namespace:
             "body-up",
             "arm-stow",
             "staged",
+            "wheel-view",
             "body-grasp",
             "grasp-once",
             "catch",
@@ -140,7 +142,11 @@ def main() -> None:
     if args.mode == "detect":
         raise SystemExit(0 if detect_once(args.color, config, args.save_image) else 1)
 
-    robot = Robot(config["robot"].get("serial_port", "/dev/ttyAMA0"), dry_run=args.dry_run)
+    robot = Robot(
+        config["robot"].get("serial_port", "/dev/ttyAMA0"),
+        model=config["robot"].get("model", "auto"),
+        dry_run=args.dry_run,
+    )
     motion = Motion(
         robot,
         config["robot"].get("drive", {}),
@@ -149,6 +155,17 @@ def main() -> None:
     )
 
     try:
+        if args.mode == "wheel-view":
+            drive = CompetitionDrive(robot, config["robot"].get("drive", {}))
+            try:
+                drive.use_wheel_posture("view_down")
+                detected = detect_once(args.color, config, args.save_image)
+            finally:
+                drive.stop()
+                drive.use_gait_mode()
+                robot.stop()
+            raise SystemExit(0 if detected else 1)
+
         if args.mode == "align":
             if not args.dry_run:
                 prepare_for_grasp(robot)

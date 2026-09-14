@@ -336,6 +336,7 @@ python tools/test_square_motion.py --timed --forward-seconds 2.3
 ```bash
 python tools/test_ball_grasp.py detect --color red --save-image
 python tools/test_ball_grasp.py align --color red
+python tools/test_ball_grasp.py wheel-view --color red --save-image
 python tools/test_ball_grasp.py staged
 python tools/test_ball_grasp.py body-grasp --color red
 python tools/test_ball_grasp.py grasp-once
@@ -374,6 +375,9 @@ python tools/test_ball_grasp.py arm-stow
 
 `body-grasp` 使用一个连续控制会话：先执行 `body-down`，随后读取比赛相机画面；
 仅当目标球满足 `grasp_ready` 时才继续抓取，否则恢复本体并退出。
+
+`wheel-view` 只进入低头轮态 `view_down` 姿态并读取一帧，不驱动车轮；取帧后自动
+退出轮控并恢复中立姿态，用于单独标定低头行进阶段的小球视野。
 
 ### 运行前处理厂商占用服务
 

@@ -6,7 +6,7 @@
   },
   "robot": {
     "serial_port": "/dev/ttyAMA0",
-    "model": "auto",
+    "model": "xgomini",
     "drive": {
       "forward_input_max": 30,
       "turn_input_max": 80,
