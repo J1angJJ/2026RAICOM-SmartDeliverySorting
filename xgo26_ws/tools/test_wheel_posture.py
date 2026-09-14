@@ -45,8 +45,10 @@ def main() -> None:
             f"hold={max(0.0, args.seconds):.1f}s"
         )
         if not args.dry_run:
-            print(f"[posture] imu pitch={robot.read_pitch():.2f} deg")
+            print(f"[posture] initial imu pitch={robot.read_pitch():.2f} deg")
         time.sleep(max(0.0, args.seconds))
+        if not args.dry_run and args.seconds > 0:
+            print(f"[posture] final imu pitch={robot.read_pitch():.2f} deg")
     finally:
         drive.stop()
         drive.use_gait_mode()
