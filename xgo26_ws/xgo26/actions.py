@@ -113,6 +113,14 @@ def _select_tracked_ball(
     if not candidates:
         return None
     if previous is None:
+        candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.touches_bottom
+            or 0.65 <= candidate.box_aspect_ratio <= 1.45
+        ]
+        if not candidates:
+            return None
         return min(
             candidates,
             key=lambda candidate: (
@@ -166,14 +174,21 @@ def align_ball_for_body_down(
     turn_tolerance = abs(float(grasp_cfg.get("approach_turn_tolerance_deg", 0.7)))
     forward_speed = abs(float(grasp_cfg.get("approach_forward_speed", 20)))
     forward_seconds = max(0.0, float(grasp_cfg.get("approach_forward_seconds", 0.15)))
+    near_forward_seconds = max(
+        0.0,
+        float(grasp_cfg.get("approach_near_forward_seconds", 0.08)),
+    )
+    near_top_margin = abs(float(grasp_cfg.get("approach_near_top_margin", 0.14)))
     backward_speed = abs(float(grasp_cfg.get("approach_backward_speed", 15)))
     backward_seconds = max(0.0, float(grasp_cfg.get("approach_backward_seconds", 0.12)))
     settle_seconds = max(0.0, float(grasp_cfg.get("approach_settle_seconds", 0.25)))
+    lost_retries = max(0, int(grasp_cfg.get("approach_lost_retries", 2)))
     max_track_x_jump = abs(float(grasp_cfg.get("approach_max_track_x_jump", 0.3)))
     max_track_top_jump = abs(float(grasp_cfg.get("approach_max_track_top_jump", 0.2)))
     max_track_width_jump = abs(float(grasp_cfg.get("approach_max_track_width_jump", 0.1)))
 
     stable_frames = 0
+    lost_frames = 0
     previous_detection: BallDetection | None = None
     motion.drive.use_wheel_posture(posture)
     with camera_reader_from_config(
@@ -207,6 +222,14 @@ def align_ball_for_body_down(
             )
             if detection is None:
                 motion.stop()
+                if previous_detection is not None and lost_frames < lost_retries:
+                    lost_frames += 1
+                    print(
+                        "[action] approach target missing, wait stopped "
+                        f"retry={lost_frames}/{lost_retries}"
+                    )
+                    time.sleep(settle_seconds)
+                    continue
                 if candidates and previous_detection is not None:
                     positions = ", ".join(
                         f"x={candidate.box_center_x_normalized:.2f}/"
@@ -219,8 +242,12 @@ def align_ball_for_body_down(
                         f"candidates={len(candidates)} [{positions}]"
                     )
                 else:
-                    print("[action] approach ball lost, stop")
+                    print(
+                        "[action] approach no plausible ball, stop; "
+                        f"candidates={len(candidates)}"
+                    )
                 return False
+            lost_frames = 0
             previous_detection = detection
 
             ready = ball_ready_for_body_down(detection, config)
@@ -268,9 +295,12 @@ def align_ball_for_body_down(
                 not detection.touches_bottom
                 or detection.box_width_ratio < target_width - width_tolerance
             ):
-                print(f"[action] approach pulse forward {forward_seconds:.2f}s")
+                pulse_seconds = forward_seconds
+                if detection.box_top_ratio >= target_top - near_top_margin:
+                    pulse_seconds = min(forward_seconds, near_forward_seconds)
+                print(f"[action] approach pulse forward {pulse_seconds:.2f}s")
                 motion.drive.wheel_drive(forward_speed, 0)
-                time.sleep(forward_seconds)
+                time.sleep(pulse_seconds)
                 motion.stop()
             elif detection.box_width_ratio > target_width + width_tolerance:
                 print(f"[action] approach pulse backward {backward_seconds:.2f}s")

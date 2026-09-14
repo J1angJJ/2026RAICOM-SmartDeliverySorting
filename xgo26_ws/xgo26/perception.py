@@ -65,6 +65,10 @@ class BallDetection:
     def box_width_ratio(self) -> float:
         return self.box_width / self.width
 
+    @property
+    def box_aspect_ratio(self) -> float:
+        return self.box_width / max(1, self.box_height)
+
     def centered(self, target_x: float, target_y: float, tolerance_x: float, tolerance_y: float) -> bool:
         return (
             abs(self.normalized_x - target_x) <= tolerance_x
