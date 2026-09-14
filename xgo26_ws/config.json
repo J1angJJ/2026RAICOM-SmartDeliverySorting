@@ -1,4 +1,9 @@
 {
+  "board_start": {
+    "armed": false,
+    "confirm_window": 1.2,
+    "countdown_seconds": 3
+  },
   "robot": {
     "serial_port": "/dev/ttyAMA0",
     "model": "auto",

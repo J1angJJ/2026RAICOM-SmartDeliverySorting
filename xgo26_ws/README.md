@@ -256,6 +256,57 @@ sudo systemctl start oumax-manual
 systemctl status xgo26-camera oumax-manual --no-pager
 ```
 
+### 板载 B 键一键启动
+
+厂家开机入口是 `/etc/rc.local` 启动的 `RaspberryPi-CM5/common/main.py`。它负责屏幕主菜单、ABCD 按键和厂家子程序调度；选择子程序后会阻塞等待子程序结束。主界面的 B 键原本没有功能，因此比赛模式将它挂接为：
+
+```text
+第一次按 B -> 1.2 秒内再按一次 B -> 屏幕倒计时 3 秒 -> 启动正式任务
+```
+
+第二次按键超时会取消。任务正在运行时有文件锁防止重复启动；`oumax-manual.service` 仍在占用串口、共享相机健康检查失败时都会拒绝启动并在屏幕提示。启动器不导入厂家 `uiutils`，避免为显示和按键再次打开机器狗串口。
+
+仓库默认设置 `config.json` 中的 `board_start.armed` 为 `false`。此时可以安装挂接并测试双击 B，屏幕只会显示 `MISSION NOT ARMED`，绝不会运行任务。完成分段运动测试后才将它改为 `true`；双击窗口和倒计时也在同一配置段调整。
+
+部署前先确认仓库位于默认板端路径，并检查厂家文件是否与已知版本匹配：
+
+```bash
+cd ~/2026-raicom-smart-delivery-sorting/xgo26_ws
+python deploy/install_board_button.py check
+```
+
+进入比赛模式前只需配置一次服务。以下操作可逆，但必须在机器狗静止并确认没有其他队员运行控制程序时执行：
+
+```bash
+sudo systemctl disable --now oumax-manual.service
+sudo systemctl disable --now oumax-camera.service
+sudo install -m 644 deploy/systemd/xgo26-camera.service /etc/systemd/system/xgo26-camera.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now xgo26-camera.service
+sudo /home/pi/RaspberryPi-CM5/xgovenv/bin/python deploy/install_board_button.py install
+sudo systemctl restart --no-block rc-local.service
+```
+
+安装工具会先保留 `common/main.py.before-xgo26`，校验修改后的 Python 语法，再原子替换厂家文件。它只替换原本无功能的 B 键分支，不改下位机固件、串口协议或其他菜单项。
+
+检查挂接和运行日志：
+
+```bash
+python deploy/install_board_button.py check
+tail -f /home/pi/app.log
+```
+
+恢复厂家主界面及原服务：
+
+```bash
+sudo /home/pi/RaspberryPi-CM5/xgovenv/bin/python deploy/install_board_button.py restore
+sudo systemctl disable --now xgo26-camera.service
+sudo systemctl enable --now oumax-camera.service oumax-manual.service
+sudo systemctl restart --no-block rc-local.service
+```
+
+恢复操作会保留备份文件以便核对，不自动删除任何厂家源码或备份。下次上机应先完成 `check` 和服务状态检查，再在机器狗架空或有人扶稳的情况下测试双击确认；当前路线尚未完成场地标定，不得直接放地运行完整任务。
+
 ### 停止任务
 
 终端中按：
