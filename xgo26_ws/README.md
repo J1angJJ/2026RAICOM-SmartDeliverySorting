@@ -336,20 +336,35 @@ python tools/test_square_motion.py --timed --forward-seconds 2.3
 ```bash
 python tools/test_ball_grasp.py detect --color red --save-image
 python tools/test_ball_grasp.py align --color red
+python tools/test_ball_grasp.py staged
+python tools/test_ball_grasp.py grasp-once
+python tools/test_ball_grasp.py catch --color red
+```
+
+`staged` 在同一个串口会话内依次等待回车并执行：
+
+```text
+body-down -> arm-down -> claw-close -> arm-up -> body-up -> arm-stow
+```
+
+等待回车期间机器人保持当前状态，可观察画面和机构位置。输入 `q` 会关闭程序但不复位
+机器人；若机械臂或本体还在下探状态，通常应继续完成 `arm-up`、`body-up` 后再退出。
+
+以下入口用于孤立检查单个阶段：
+
+```bash
 python tools/test_ball_grasp.py body-down
 python tools/test_ball_grasp.py arm-down
 python tools/test_ball_grasp.py claw-close
 python tools/test_ball_grasp.py arm-up
 python tools/test_ball_grasp.py body-up
 python tools/test_ball_grasp.py arm-stow
-python tools/test_ball_grasp.py grasp-once
-python tools/test_ball_grasp.py catch --color red
 ```
 
-分步调试时按 `body-down -> arm-down -> claw-close -> arm-up -> body-up -> arm-stow`
-依次运行。每条命令退出后舵机会保持当前位置；不要跳过 `arm-up` 就执行
-`body-up`，避免携球机械臂在本体抬起时碰撞头部。`grasp-once` 暂时保留已经
-实机验证的交错下探顺序，分步流程验证完成后再替换正式轨迹。
+厂家 `xgolib` 每次创建控制对象都会复位机器人，因此不能在多个进程中依次运行上述
+单阶段命令来拼接动作。需要保持上一阶段状态时必须使用 `staged`。不要跳过
+`arm-up` 就执行 `body-up`，避免携球机械臂在本体抬起时碰撞头部。
+`grasp-once` 暂时保留已经实机验证的交错下探顺序。
 
 ### 运行前处理厂商占用服务
 

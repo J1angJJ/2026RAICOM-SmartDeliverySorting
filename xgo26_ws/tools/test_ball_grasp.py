@@ -40,6 +40,7 @@ def parse_args() -> argparse.Namespace:
             "arm-up",
             "body-up",
             "arm-stow",
+            "staged",
             "grasp-once",
             "catch",
         ],
@@ -94,6 +95,29 @@ def detect_once(color: str, config: dict, save_image: bool) -> bool:
     return detection is not None
 
 
+def run_staged_grasp(robot: Robot) -> None:
+    stages = (
+        ("body-down", "本体进入抓取观察姿态", lower_grasp_body),
+        ("arm-down", "机械臂张爪并下探", lower_grasp_arm),
+        ("claw-close", "闭合夹爪", close_grasp_claw),
+        ("arm-up", "机械臂按 53 -> 52 回收", retract_grasp_arm),
+        ("body-up", "本体恢复中立姿态", restore_grasp_body),
+        ("arm-stow", "机械臂进入携球姿态", stow_grasp_arm),
+    )
+    print("[ball-test] 单会话分步抓取；等待输入时机器人保持当前状态")
+    for name, description, action in stages:
+        while True:
+            answer = input(f"[ball-test] 回车执行 {name}：{description}；q 保持当前状态并退出 > ")
+            if not answer.strip():
+                action(robot)
+                break
+            if answer.strip().lower() == "q":
+                print("[ball-test] 已退出，未复位机器人")
+                return
+            print("[ball-test] 无效输入，请直接回车或输入 q")
+    print("[ball-test] 分步抓取完成")
+
+
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
@@ -125,6 +149,10 @@ def main() -> None:
         }
         if args.mode in stages:
             stages[args.mode](robot)
+            return
+
+        if args.mode == "staged":
+            run_staged_grasp(robot)
             return
 
         if args.mode == "grasp-once":
