@@ -198,13 +198,19 @@ def capture_and_vote_expected(
     return DeliveryTask(*key)
 
 
-def find_colored_ball(frame: Any, threshold: list[int]) -> tuple[int, int, int] | None:
-    found = _find_colored_ball_contour(frame, threshold)
+def find_colored_ball(
+    frame: Any,
+    threshold: list[int],
+    roi_top_ratio: float = 0.0,
+) -> tuple[int, int, int] | None:
+    found = _find_colored_ball_contour(frame, threshold, roi_top_ratio)
     return found[1] if found is not None else None
 
 
 def _find_colored_ball_contour(
-    frame: Any, threshold: list[int]
+    frame: Any,
+    threshold: list[int],
+    roi_top_ratio: float = 0.0,
 ) -> tuple[Any, tuple[int, int, int]] | None:
     import cv2
     import numpy as np
@@ -215,6 +221,8 @@ def _find_colored_ball_contour(
         (threshold[0], threshold[2], threshold[4]),
         (threshold[1], threshold[3], threshold[5]),
     )
+    roi_top = int(frame.shape[0] * max(0.0, min(1.0, roi_top_ratio)))
+    mask[:roi_top, :] = 0
     kernel = np.ones((5, 5), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -228,10 +236,15 @@ def _find_colored_ball_contour(
     return contour, (int(x), int(y), int(radius))
 
 
-def detect_colored_ball(frame: Any, color: str, threshold: list[int]) -> BallDetection | None:
+def detect_colored_ball(
+    frame: Any,
+    color: str,
+    threshold: list[int],
+    roi_top_ratio: float = 0.0,
+) -> BallDetection | None:
     import cv2
 
-    found = _find_colored_ball_contour(frame, threshold)
+    found = _find_colored_ball_contour(frame, threshold, roi_top_ratio)
     if found is None:
         return None
     contour, (x, y, radius) = found

@@ -55,7 +55,12 @@ def detect_ball_once(color: str, config: dict) -> tuple[bool, BallDetection | No
     )
     if not ok:
         return False, None
-    return True, detect_colored_ball(frame, color, thresholds[color])
+    return True, detect_colored_ball(
+        frame,
+        color,
+        thresholds[color],
+        roi_top_ratio=float(grasp_cfg.get("roi_top_ratio", 0.55)),
+    )
 
 
 def ball_ready_for_grasp(detection: BallDetection, config: dict) -> bool:
@@ -99,7 +104,12 @@ def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
             if frame is None:
                 print("[action] camera failed while grasping")
                 break
-            detection = detect_colored_ball(frame, color, threshold)
+            detection = detect_colored_ball(
+                frame,
+                color,
+                threshold,
+                roi_top_ratio=float(grasp_cfg.get("roi_top_ratio", 0.55)),
+            )
             if detection is None:
                 print("[action] ball not found, move forward")
                 motion.move("x", float(grasp_cfg.get("search_speed", 12)), 0.7)

@@ -69,7 +69,12 @@ def detect_once(color: str, config: dict, save_image: bool) -> bool:
         return False
 
     threshold = config["ball_thresholds_lab"][color]
-    detection = detect_colored_ball(frame, color, threshold)
+    detection = detect_colored_ball(
+        frame,
+        color,
+        threshold,
+        roi_top_ratio=float(grasp_cfg.get("roi_top_ratio", 0.55)),
+    )
     if detection is None:
         print(f"[ball-test] {color} ball not found")
     else:
