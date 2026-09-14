@@ -212,15 +212,17 @@ X        停车、恢复中立步态并退出
 停止收到运动按键约 `0.65 s` 后会自动停车，`Ctrl+C`、SSH 挂断和终止信号也会执行停车清理。可用参数调整初始速度和保护时间：
 
 ```bash
-python tools/teleop_keyboard.py --speed 20 --gait-forward 8 --gait-turn 8
+python tools/teleop_keyboard.py --speed 20 --gait-forward 8 --gait-arc-turn 12 --gait-turn 20
 ```
 
 需要逐步观察相机反馈时，使用带 `0.5 s` 硬上限的低头步态测试脚本。以下命令只执行一次约 `0.18 s` 的转向，随后立即停车：
 
 ```bash
-python tools/test_gait_adjust.py left --turn-speed 8 --seconds 0.18
-python tools/test_gait_adjust.py right --turn-speed 8 --seconds 0.18
+python tools/test_gait_adjust.py left --turn-speed 20 --seconds 0.35
+python tools/test_gait_adjust.py right --turn-speed 20 --seconds 0.35
 ```
+
+实机慢速步态测试中，原地转向量 `8` 和 `12` 没有产生可测航向变化；转向量 `20`、持续 `0.40 s` 时约转过 `5°`。前进弧线可使用较小的转向量，具体位移仍需结合画面逐步标定。
 
 采集器与遥控器可以在两个 SSH 终端同时运行：采集器只读共享相机，遥控器独占控制串口。仓库内新启动的第二个控制程序会因 `/tmp/xgo26-serial-ttyAMA0.lock` 被拒绝，但厂家程序不识别这个锁，因此仍需人工确认 `oumax-manual.service` 已停止。
 

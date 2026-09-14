@@ -92,7 +92,7 @@
     "minimum_bands": 2,
     "minimum_column_fill": 0.25,
     "minimum_width_ratio": 0.006,
-    "maximum_width_ratio": 0.18,
+    "maximum_width_ratio": 0.3,
     "expected_width_ratio": 0.06,
     "maximum_jump_ratio": 0.28,
     "target_x_ratio": 0.5,

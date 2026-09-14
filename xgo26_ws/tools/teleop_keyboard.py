@@ -23,7 +23,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--speed", type=float, default=8.0, help="四轮前后速度")
     parser.add_argument("--turn-speed", type=float, default=20.0, help="正常步态转向速度")
     parser.add_argument("--gait-forward", type=float, default=8.0, help="低头步态弧线前进速度")
-    parser.add_argument("--gait-turn", type=float, default=8.0, help="低头步态微调转向速度")
+    parser.add_argument("--gait-arc-turn", type=float, default=12.0, help="低头步态弧线转向速度")
+    parser.add_argument("--gait-turn", type=float, default=20.0, help="低头步态原地微调速度")
     parser.add_argument("--rate", type=float, default=10.0, help="指令重复发送频率")
     parser.add_argument("--deadman", type=float, default=0.65, help="停止接收按键后的停车延迟")
     parser.add_argument("--dry-run", action="store_true")
@@ -45,6 +46,7 @@ def main() -> None:
     speed = min(abs(args.speed), drive.forward_input_max)
     turn_speed = min(abs(args.turn_speed), drive.turn_input_max)
     gait_forward = min(abs(args.gait_forward), drive.forward_input_max)
+    gait_arc_turn = min(abs(args.gait_arc_turn), drive.turn_input_max)
     gait_turn = min(abs(args.gait_turn), drive.turn_input_max)
     posture = "neutral"
     command: Callable[[], None] | None = None
@@ -102,9 +104,15 @@ def main() -> None:
                 elif lower == "s":
                     set_motion("wheel-backward", lambda: wheel_motion(-speed))
                 elif lower == "a":
-                    set_motion("gait-arc-left", lambda: gait_motion(gait_forward, gait_turn))
+                    set_motion(
+                        "gait-arc-left",
+                        lambda: gait_motion(gait_forward, gait_arc_turn),
+                    )
                 elif lower == "d":
-                    set_motion("gait-arc-right", lambda: gait_motion(gait_forward, -gait_turn))
+                    set_motion(
+                        "gait-arc-right",
+                        lambda: gait_motion(gait_forward, -gait_arc_turn),
+                    )
                 elif lower == "q":
                     set_motion("gait-fine-left", lambda: gait_motion(0, gait_turn))
                 elif lower == "e":

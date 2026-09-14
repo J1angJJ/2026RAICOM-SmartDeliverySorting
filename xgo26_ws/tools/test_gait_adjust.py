@@ -18,7 +18,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="低头步态单步微调测试（单次最长 0.5 秒）")
     parser.add_argument("direction", choices=["left", "right"])
     parser.add_argument("--config", default="config.json")
-    parser.add_argument("--turn-speed", type=float, default=8.0)
+    parser.add_argument("--turn-speed", type=float, default=20.0)
     parser.add_argument("--forward", type=float, default=0.0, help="设为正值可测试前进弧线")
     parser.add_argument("--seconds", type=float, default=0.18)
     parser.add_argument("--posture", default="view_down")
