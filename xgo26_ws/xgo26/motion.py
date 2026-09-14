@@ -70,10 +70,14 @@ class Motion:
             return
         origin = self.robot.read_yaw()
         started = time.time()
+        final_delta = 0.0
+        final_error = angle
         try:
             while True:
                 current = _angle_error(self.robot.read_yaw(), origin)
                 error = _angle_error(angle, current)
+                final_delta = current
+                final_error = error
                 if abs(error) <= abs(tolerance):
                     break
                 if time.time() - started > timeout:
@@ -86,6 +90,12 @@ class Motion:
         finally:
             self.drive.stop()
             time.sleep(0.25)
+        print(
+            f"[motion] relative turn complete delta={final_delta:.1f} "
+            f"error={final_error:+.1f}"
+        )
+        if abs(final_error) > abs(tolerance):
+            raise TimeoutError(f"低头相对转向未到位，剩余误差 {final_error:+.1f} 度")
 
     def run_route(self, name: str, steps: Iterable[dict]) -> None:
         print(f"[motion] route {name}")
