@@ -234,16 +234,22 @@ def _detect_corner(mask: Any, line_x: float, config: dict) -> CornerDetection | 
     join_tolerance = width * float(config.get("corner_join_tolerance_ratio", 0.08))
     minimum_side = width * float(config.get("corner_minimum_side_ratio", 0.16))
     minimum_y = height * float(config.get("corner_minimum_y_ratio", 0.52))
+    maximum_y = height * float(config.get("corner_maximum_y_ratio", 0.90))
     maximum_height = height * float(config.get("corner_maximum_height_ratio", 0.14))
 
     best: CornerDetection | None = None
     for contour in contours:
         x, y, span, thickness = cv2.boundingRect(contour)
-        if span < min_span or thickness > maximum_height or y + thickness < minimum_y:
+        center_y = y + thickness // 2
+        if (
+            span < min_span
+            or thickness > maximum_height
+            or center_y < minimum_y
+            or center_y > maximum_y
+        ):
             continue
         if x > line_x + join_tolerance or x + span < line_x - join_tolerance:
             continue
-        center_y = y + thickness // 2
         left_span = max(0.0, line_x - x)
         right_span = max(0.0, x + span - line_x)
         if right_span >= minimum_side and right_span > left_span * 1.25:

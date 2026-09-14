@@ -105,6 +105,7 @@
     "corner_join_tolerance_ratio": 0.08,
     "corner_minimum_side_ratio": 0.16,
     "corner_minimum_y_ratio": 0.52,
+    "corner_maximum_y_ratio": 0.9,
     "corner_maximum_height_ratio": 0.14
   },
   "models": {
