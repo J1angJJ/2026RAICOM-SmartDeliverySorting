@@ -66,6 +66,10 @@ def main() -> None:
         command_name = name
         deadline = time.monotonic() + args.deadman
 
+    def wheel_motion(forward: float, yaw: float = 0.0) -> None:
+        drive.use_wheel_posture(posture)
+        drive.wheel_drive(forward, yaw)
+
     def show_status() -> None:
         print(
             f"\r[teleop] command={command_name:<14} posture={posture:<9} "
@@ -88,17 +92,17 @@ def main() -> None:
                     command_name = "stop"
                     drive.stop()
                 elif lower == "w":
-                    set_motion("wheel-forward", lambda: drive.wheel_drive(speed, 0))
+                    set_motion("wheel-forward", lambda: wheel_motion(speed))
                 elif lower == "s":
-                    set_motion("wheel-backward", lambda: drive.wheel_drive(-speed, 0))
+                    set_motion("wheel-backward", lambda: wheel_motion(-speed))
                 elif lower == "a":
                     set_motion("gait-left", lambda: drive.turn(turn_speed))
                 elif lower == "d":
                     set_motion("gait-right", lambda: drive.turn(-turn_speed))
                 elif lower == "q":
-                    set_motion("wheel-left", lambda: drive.wheel_drive(speed, steer))
+                    set_motion("wheel-left", lambda: wheel_motion(speed, steer))
                 elif lower == "e":
-                    set_motion("wheel-right", lambda: drive.wheel_drive(speed, -steer))
+                    set_motion("wheel-right", lambda: wheel_motion(speed, -steer))
                 elif key in {"1", "2", "3"}:
                     command = None
                     command_name = "stop"
