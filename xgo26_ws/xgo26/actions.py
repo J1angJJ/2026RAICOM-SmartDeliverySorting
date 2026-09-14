@@ -163,6 +163,7 @@ def align_ball_for_body_down(
     target_x = float(grasp_cfg.get("approach_target_x", -0.17))
     tolerance_x = float(grasp_cfg.get("approach_tolerance_x", 0.08))
     target_top = float(grasp_cfg.get("approach_target_top_ratio", 0.78))
+    top_tolerance = float(grasp_cfg.get("approach_tolerance_top_ratio", 0.06))
     target_width = float(grasp_cfg.get("approach_target_width_ratio", 0.14))
     width_tolerance = float(grasp_cfg.get("approach_tolerance_width_ratio", 0.03))
     max_steps = max(1, int(grasp_cfg.get("approach_max_steps", 10)))
@@ -302,7 +303,10 @@ def align_ball_for_body_down(
                 motion.drive.wheel_drive(forward_speed, 0)
                 time.sleep(pulse_seconds)
                 motion.stop()
-            elif detection.box_width_ratio > target_width + width_tolerance:
+            elif (
+                detection.box_top_ratio > target_top + top_tolerance
+                or detection.box_width_ratio > target_width + width_tolerance
+            ):
                 print(f"[action] approach pulse backward {backward_seconds:.2f}s")
                 motion.drive.wheel_drive(-backward_speed, 0)
                 time.sleep(backward_seconds)
