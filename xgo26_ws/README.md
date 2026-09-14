@@ -200,8 +200,9 @@ python tools/teleop_keyboard.py
 
 ```text
 W / S    纯四轮前进 / 后退
-A / D    正常步态原地左转 / 右转
-Q / E    纯四轮向前左微调 / 右微调
+A / D    保持当前姿态，纯四轮向前左弧 / 右弧
+Q / E    保持当前姿态，纯四轮原地左微转 / 右微转
+J / L    正常步态左转 / 右转，会先恢复中立姿态
 1 / 2 / 3  抬头 / 中立 / 低头四轮姿态
 + / -    调整四轮前后速度
 空格     立即停车
@@ -211,7 +212,7 @@ X        停车、恢复中立步态并退出
 停止收到运动按键约 `0.65 s` 后会自动停车，`Ctrl+C`、SSH 挂断和终止信号也会执行停车清理。可用参数调整初始速度和保护时间：
 
 ```bash
-python tools/teleop_keyboard.py --speed 6 --turn-speed 16 --deadman 0.45
+python tools/teleop_keyboard.py --speed 20 --steer 24 --pivot 28
 ```
 
 采集器与遥控器可以在两个 SSH 终端同时运行：采集器只读共享相机，遥控器独占控制串口。仓库内新启动的第二个控制程序会因 `/tmp/xgo26-serial-ttyAMA0.lock` 被拒绝，但厂家程序不识别这个锁，因此仍需人工确认 `oumax-manual.service` 已停止。

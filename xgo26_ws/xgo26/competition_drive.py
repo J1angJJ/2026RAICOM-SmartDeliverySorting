@@ -19,6 +19,7 @@ class CompetitionDrive:
         self.wheel_postures = cfg.get("wheel_postures", {})
         self._mode = "gait"
         self._posture = "neutral"
+        self.last_wheel_values = [128, 128, 128, 128]
 
     def forward(self, speed: float) -> None:
         """四轮同速前进/后退，不发送腿部平移命令。"""
@@ -33,7 +34,8 @@ class CompetitionDrive:
         right = x + z
         peak = max(1.0, abs(left), abs(right))
         values = [left / peak, right / peak, left / peak, right / peak]
-        self.robot.wheel_control([self._wheel_byte(value) for value in values])
+        self.last_wheel_values = [self._wheel_byte(value) for value in values]
+        self.robot.wheel_control(self.last_wheel_values)
 
     def move_forward(self, speed: float, seconds: float) -> None:
         if seconds <= 0:
@@ -58,7 +60,8 @@ class CompetitionDrive:
 
     def stop(self) -> None:
         if self._mode == "wheel":
-            self.robot.wheel_control([128, 128, 128, 128])
+            self.last_wheel_values = [128, 128, 128, 128]
+            self.robot.wheel_control(self.last_wheel_values)
         else:
             self.robot.stop()
 
@@ -90,6 +93,7 @@ class CompetitionDrive:
         if self._mode == "gait":
             return
         self.robot.wheel_control([128, 128, 128, 128])
+        self.last_wheel_values = [128, 128, 128, 128]
         self.robot.enable_wheel_control(0)
         self._mode = "gait"
         if self._posture != "neutral" and "neutral" in self.wheel_postures:
