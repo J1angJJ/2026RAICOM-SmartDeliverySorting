@@ -113,8 +113,6 @@ def main() -> None:
                 auto_due = auto_enabled and now - last_auto >= args.interval
                 if not capture_requested and not auto_due:
                     continue
-                if auto_due:
-                    last_auto = now
 
                 quality, gray = _quality_metrics(frame)
                 if (
@@ -123,6 +121,7 @@ def main() -> None:
                     and previous_gray is not None
                     and _mean_change(gray, previous_gray) < args.min_change
                 ):
+                    last_auto = time.monotonic()
                     capture_requested = False
                     continue
 
@@ -147,6 +146,8 @@ def main() -> None:
                 metadata_file.flush()
                 previous_gray = gray
                 capture_requested = False
+                if auto_due:
+                    last_auto = time.monotonic()
                 warning = _quality_warning(record)
                 print(
                     f"\r[capture] saved={saved} exposure={record.get('exposure_time_us')}us "
