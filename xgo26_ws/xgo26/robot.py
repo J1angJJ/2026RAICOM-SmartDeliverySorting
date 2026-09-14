@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import fcntl
+import os
+from pathlib import Path
 import time
 from typing import Any
 
@@ -10,22 +13,51 @@ class Robot:
         serial_port: str = "/dev/ttyAMA0",
         model: str = "auto",
         dry_run: bool = False,
+        lock_serial: bool = True,
     ):
         self.serial_port = serial_port
         self.model = model
         self.dry_run = dry_run
         self.dog: Any | None = None
+        self._serial_lock_file: Any | None = None
         self.wheel_control_enabled = False
         if dry_run:
             print(f"[robot] dry-run mode, serial={serial_port}, model={model}")
             return
+        if lock_serial:
+            self._acquire_serial_lock()
         try:
             import xgolib
 
             self.dog = xgolib.XGO(port=serial_port, version=model)
             print(f"[robot] connected serial={serial_port}, model={model}")
         except Exception as exc:
+            self.close()
             raise RuntimeError(f"无法初始化 XGO({serial_port}): {exc}") from exc
+
+    def close(self) -> None:
+        self.dog = None
+        if self._serial_lock_file is not None:
+            try:
+                fcntl.flock(self._serial_lock_file, fcntl.LOCK_UN)
+            finally:
+                self._serial_lock_file.close()
+                self._serial_lock_file = None
+
+    def _acquire_serial_lock(self) -> None:
+        lock_name = Path(self.serial_port).name.replace("/", "_")
+        lock_path = Path(f"/tmp/xgo26-serial-{lock_name}.lock")
+        lock_file = lock_path.open("w", encoding="ascii")
+        try:
+            fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            lock_file.close()
+            raise RuntimeError(
+                f"控制串口正被另一个 XGO26 程序使用: {self.serial_port}"
+            ) from exc
+        lock_file.write(str(os.getpid()))
+        lock_file.flush()
+        self._serial_lock_file = lock_file
 
     def reset(self) -> None:
         self._call("reset")

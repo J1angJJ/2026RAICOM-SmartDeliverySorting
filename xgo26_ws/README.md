@@ -162,6 +162,69 @@ drop_A_to_pick_area / drop_B_to_pick_area / drop_C_to_pick_area / drop_D_to_pick
 
 当前没有里程计，所有 `seconds`、横移方向和角度都只是按图 4-3 搭出的初始占位值，正式运行前必须逐段标定。
 
+### 采集 YOLO 图片
+
+采集器只读取 `xgo26-camera.service` 的共享主码流，不会直接占用摄像头。默认保存完整的 `1296x972` 原图，以及曝光时间、模拟增益、亮度、过曝/欠曝比例和清晰度等元数据。输出位于已忽略的 `datasets/raw/`，不会进入 Git。
+
+手动采集：
+
+```bash
+python tools/capture_yolo_images.py --session recognition_letters_01
+```
+
+终端中按空格保存，按 `A` 开关自动采集，按 `Q` 退出。启动后按固定间隔自动采集：
+
+```bash
+python tools/capture_yolo_images.py --session placement_letters_motion_01 --auto --interval 0.4
+```
+
+需要过滤几乎没有变化的连续画面时，可以增加最低灰度变化阈值：
+
+```bash
+python tools/capture_yolo_images.py --session placement_letters_motion_02 --auto --interval 0.4 --min-change 2
+```
+
+每个批次包含 `images/`、`frames.jsonl` 和 `session.json`。不要直接在这个原始目录中裁图或覆盖图片；后续从原图生成训练集，并按采集批次划分训练集和验证集。
+
+相机默认使用自动曝光和自动白平衡。运动采集时注意终端输出中的 `exposure`，曝光时间超过约 `10000 us` 时容易产生运动模糊。完成现场测光后，可以在 `config.json` 的 `camera.controls` 中关闭自动控制并填写 `exposure_time_us`、`analogue_gain` 和 `colour_gains`，然后重启 `xgo26-camera.service`。锁定参数前必须分别检查场地明暗区域，不能仅凭一张画面决定。
+
+### SSH 键盘遥控
+
+确认机器狗周围安全，并保证 `oumax-manual.service`、任务监听服务和其他控制程序没有占用串口：
+
+```bash
+python tools/teleop_keyboard.py
+```
+
+按键采用自动停车保护，必须按住并依靠键盘重复发送才能持续运动：
+
+```text
+W / S    纯四轮前进 / 后退
+A / D    正常步态原地左转 / 右转
+Q / E    纯四轮向前左微调 / 右微调
+1 / 2 / 3  抬头 / 中立 / 低头四轮姿态
++ / -    调整四轮前后速度
+空格     立即停车
+X        停车、恢复中立步态并退出
+```
+
+停止收到运动按键约 `0.65 s` 后会自动停车，`Ctrl+C`、SSH 挂断和终止信号也会执行停车清理。可用参数调整初始速度和保护时间：
+
+```bash
+python tools/teleop_keyboard.py --speed 6 --turn-speed 16 --deadman 0.45
+```
+
+采集器与遥控器可以在两个 SSH 终端同时运行：采集器只读共享相机，遥控器独占控制串口。仓库内新启动的第二个控制程序会因 `/tmp/xgo26-serial-ttyAMA0.lock` 被拒绝，但厂家程序不识别这个锁，因此仍需人工确认 `oumax-manual.service` 已停止。
+
+推荐的运动数据采集顺序：
+
+```text
+终端一：启动 capture_yolo_images.py 并开启自动采集
+终端二：启动 teleop_keyboard.py，低速按住方向键移动
+终端二：先按空格停车，再按 X 退出
+终端一：按 A 停止自动采集，按 Q 退出
+```
+
 ### 运行单项脚本
 
 先单独测试纯轮前进和正常步态转向：

@@ -16,6 +16,7 @@ class CameraFrame:
     sequence: int
     sensor_timestamp_ns: int
     captured_monotonic: float
+    metadata: dict[str, Any]
 
 
 class CameraHub:
@@ -51,7 +52,7 @@ class CameraHub:
                 "size": _size(lores_cfg, (640, 480)),
                 "format": "YUV420",
             },
-            controls={"FrameRate": fps},
+            controls=_camera_controls(self.config, fps),
             buffer_count=max(3, int(self.config.get("buffer_count", 4))),
             display=None,
             encode=None,
@@ -108,6 +109,8 @@ class CameraHub:
                     "width": int(frame.image.shape[1]),
                     "height": int(frame.image.shape[0]),
                     "age_ms": round((now - frame.captured_monotonic) * 1000, 1),
+                    "exposure_time_us": frame.metadata.get("ExposureTime"),
+                    "analogue_gain": frame.metadata.get("AnalogueGain"),
                 }
                 for name, frame in self._frames.items()
             }
@@ -131,6 +134,17 @@ class CameraHub:
                 main_bgr = request.make_array("main")
                 lores_yuv = request.make_array("lores")
                 metadata = request.get_metadata()
+                frame_metadata = {
+                    key: _json_value(metadata.get(key))
+                    for key in (
+                        "ExposureTime",
+                        "AnalogueGain",
+                        "ColourGains",
+                        "Lux",
+                        "SensorBlackLevels",
+                    )
+                    if metadata.get(key) is not None
+                }
                 captured = time.monotonic()
                 sequence += 1
                 # Picamera2 RGB888 arrays use OpenCV's BGR byte order in memory.
@@ -138,10 +152,10 @@ class CameraHub:
                 sensor_timestamp = int(metadata.get("SensorTimestamp", 0))
                 with self._condition:
                     self._frames["main"] = CameraFrame(
-                        main_bgr, sequence, sensor_timestamp, captured
+                        main_bgr, sequence, sensor_timestamp, captured, frame_metadata
                     )
                     self._frames["lores"] = CameraFrame(
-                        lores_bgr, sequence, sensor_timestamp, captured
+                        lores_bgr, sequence, sensor_timestamp, captured, frame_metadata
                     )
                     self._error = ""
                     self._condition.notify_all()
@@ -220,6 +234,7 @@ class CameraRequestHandler(server.BaseHTTPRequestHandler):
         self.send_header("X-Frame-Format", "BGR888")
         self.send_header("X-Frame-Sequence", str(frame.sequence))
         self.send_header("X-Sensor-Timestamp-Ns", str(frame.sensor_timestamp_ns))
+        self._send_capture_headers(frame)
         self._send_common_headers()
         self.end_headers()
         self.wfile.write(body)
@@ -234,6 +249,7 @@ class CameraRequestHandler(server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("X-Frame-Sequence", str(frame.sequence))
         self.send_header("X-Sensor-Timestamp-Ns", str(frame.sensor_timestamp_ns))
+        self._send_capture_headers(frame)
         self._send_common_headers()
         self.end_headers()
         self.wfile.write(body)
@@ -299,6 +315,20 @@ class CameraRequestHandler(server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
 
+    def _send_capture_headers(self, frame: CameraFrame) -> None:
+        exposure = frame.metadata.get("ExposureTime")
+        gain = frame.metadata.get("AnalogueGain")
+        colour_gains = frame.metadata.get("ColourGains")
+        lux = frame.metadata.get("Lux")
+        if exposure is not None:
+            self.send_header("X-Exposure-Time-Us", str(exposure))
+        if gain is not None:
+            self.send_header("X-Analogue-Gain", str(gain))
+        if isinstance(colour_gains, list):
+            self.send_header("X-Colour-Gains", ",".join(str(value) for value in colour_gains))
+        if lux is not None:
+            self.send_header("X-Lux", str(lux))
+
     def log_message(self, fmt: str, *args: Any) -> None:
         print(f"[camera-service] {self.address_string()} {fmt % args}")
 
@@ -323,3 +353,28 @@ def serve_camera(config: dict, host: str = "0.0.0.0", port: int = 8090) -> None:
 
 def _size(config: dict, default: tuple[int, int]) -> tuple[int, int]:
     return int(config.get("width", default[0])), int(config.get("height", default[1]))
+
+
+def _camera_controls(config: dict, fps: float) -> dict[str, Any]:
+    controls: dict[str, Any] = {"FrameRate": fps}
+    configured = config.get("controls", {})
+    names = {
+        "ae_enable": "AeEnable",
+        "awb_enable": "AwbEnable",
+        "exposure_time_us": "ExposureTime",
+        "analogue_gain": "AnalogueGain",
+        "colour_gains": "ColourGains",
+    }
+    for source, target in names.items():
+        value = configured.get(source)
+        if value is not None:
+            controls[target] = tuple(value) if source == "colour_gains" else value
+    return controls
+
+
+def _json_value(value: Any) -> Any:
+    if isinstance(value, tuple):
+        return list(value)
+    if hasattr(value, "tolist"):
+        return value.tolist()
+    return value

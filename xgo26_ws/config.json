@@ -22,6 +22,11 @@
           "height": 95,
           "pitch": 15,
           "settle_seconds": 0.6
+        },
+        "view_up": {
+          "height": 95,
+          "pitch": -10,
+          "settle_seconds": 0.6
         }
       }
     },
@@ -41,6 +46,13 @@
     "fps": 30,
     "buffer_count": 4,
     "jpeg_quality": 80,
+    "controls": {
+      "ae_enable": true,
+      "awb_enable": true,
+      "exposure_time_us": null,
+      "analogue_gain": null,
+      "colour_gains": null
+    },
     "sensor": {
       "width": 1296,
       "height": 972,

@@ -13,6 +13,7 @@ class CameraServiceClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = max(0.1, timeout)
         self._sequences = {"main": -1, "lores": -1}
+        self.last_frame_info: dict[str, Any] = {}
 
     def read(
         self,
@@ -30,7 +31,25 @@ class CameraServiceClient:
             source_width = int(response.headers["X-Frame-Width"])
             source_height = int(response.headers["X-Frame-Height"])
             channels = int(response.headers["X-Frame-Channels"])
-            self._sequences[stream] = int(response.headers["X-Frame-Sequence"])
+            sequence = int(response.headers["X-Frame-Sequence"])
+            self._sequences[stream] = sequence
+            self.last_frame_info = {
+                "stream": stream,
+                "sequence": sequence,
+                "sensor_timestamp_ns": _optional_int(
+                    response.headers.get("X-Sensor-Timestamp-Ns")
+                ),
+                "exposure_time_us": _optional_int(
+                    response.headers.get("X-Exposure-Time-Us")
+                ),
+                "analogue_gain": _optional_float(
+                    response.headers.get("X-Analogue-Gain")
+                ),
+                "colour_gains": _optional_float_list(
+                    response.headers.get("X-Colour-Gains")
+                ),
+                "lux": _optional_float(response.headers.get("X-Lux")),
+            }
         expected = source_width * source_height * channels
         if len(raw) != expected:
             raise RuntimeError(f"camera frame size mismatch: got {len(raw)}, expected {expected}")
@@ -267,3 +286,26 @@ def camera_reader_from_config(
         stream=stream,
         request_timeout=float(camera_config.get("request_timeout", 2.0)),
     )
+
+
+def _optional_int(value: str | None) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except ValueError:
+        return None
+
+
+def _optional_float(value: str | None) -> float | None:
+    try:
+        return float(value) if value is not None else None
+    except ValueError:
+        return None
+
+
+def _optional_float_list(value: str | None) -> list[float] | None:
+    if value is None:
+        return None
+    try:
+        return [float(item) for item in value.split(",")]
+    except ValueError:
+        return None

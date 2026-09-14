@@ -190,6 +190,10 @@ GET /frame.raw?stream=lores&after=<sequence>
 
 `frame.raw` 响应头包含宽、高、通道数、帧序号和 `SensorTimestamp`。正常任务代码通过 `CameraServiceClient` 使用该接口，不直接解析响应头。
 
+响应同时携带当前帧的 `ExposureTime` 和 `AnalogueGain`，图片采集器将其连同亮度、截断比例和清晰度写入 `frames.jsonl`。`config.json` 的 `camera.controls` 支持自动曝光/白平衡以及固定曝光、增益和色彩增益；默认保持自动控制，只有完成现场测光和运动模糊测试后才固定参数。
+
+YOLO 数据使用 `tools/capture_yolo_images.py` 从共享 `main` 码流采集。采集器保存完整原图而不是 ROI 裁图，确保以后可以调整框选规范、ROI 和模型输入尺寸。自动采集与浏览器预览、传统视觉和键盘遥控可以并行运行，不会创建第二个 Picamera2 实例。
+
 ## 服务切换
 
 仓库提供 `deploy/systemd/xgo26-camera.service`。它与厂商 `oumax-camera.service` 都使用摄像头和 8090 端口，不能同时运行。
