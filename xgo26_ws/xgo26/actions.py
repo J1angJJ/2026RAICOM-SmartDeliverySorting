@@ -248,7 +248,7 @@ def align_ball_for_body_down(
                     turn_max_angle,
                     max(turn_min_angle, abs(horizontal_error) * turn_gain),
                 )
-                angle = magnitude if horizontal_error > 0 else -magnitude
+                angle = -magnitude if horizontal_error > 0 else magnitude
                 direction = "left" if angle > 0 else "right"
                 print(f"[action] approach imu turn-{direction} {magnitude:.1f}deg")
                 motion.stop()
