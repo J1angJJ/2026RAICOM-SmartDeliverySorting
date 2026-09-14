@@ -77,6 +77,34 @@ def ball_ready_for_grasp(detection: BallDetection, config: dict) -> bool:
     )
 
 
+def grasp_from_body_view(robot: Robot, color: str, config: dict) -> bool:
+    print(f"[action] lower body and verify {color} ball")
+    lower_grasp_body(robot)
+    camera_ok, detection = detect_ball_once(color, config)
+    if not camera_ok:
+        print("[action] camera failed after body-down, restore body")
+        restore_grasp_body(robot)
+        return False
+    if detection is None:
+        print(f"[action] {color} ball not found after body-down, restore body")
+        restore_grasp_body(robot)
+        return False
+
+    ready = ball_ready_for_grasp(detection, config)
+    print(f"[action] {detection.summary()} grasp_ready={ready}")
+    if not ready:
+        print("[action] ball is visible but not ready, restore body without grasping")
+        restore_grasp_body(robot)
+        return False
+
+    lower_grasp_arm(robot)
+    close_grasp_claw(robot)
+    retract_grasp_arm(robot)
+    restore_grasp_body(robot)
+    stow_grasp_arm(robot)
+    return True
+
+
 def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
     thresholds = config["ball_thresholds_lab"]
     if color not in thresholds:

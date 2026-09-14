@@ -337,6 +337,7 @@ python tools/test_square_motion.py --timed --forward-seconds 2.3
 python tools/test_ball_grasp.py detect --color red --save-image
 python tools/test_ball_grasp.py align --color red
 python tools/test_ball_grasp.py staged
+python tools/test_ball_grasp.py body-grasp --color red
 python tools/test_ball_grasp.py grasp-once
 python tools/test_ball_grasp.py catch --color red
 ```
@@ -370,6 +371,9 @@ python tools/test_ball_grasp.py arm-stow
 单阶段命令来拼接动作。需要保持上一阶段状态时必须使用 `staged`。不要跳过
 `arm-up` 就执行 `body-up`，避免携球机械臂在本体抬起时碰撞头部。
 `grasp-once` 暂时保留已经实机验证的交错下探顺序。
+
+`body-grasp` 使用一个连续控制会话：先执行 `body-down`，随后读取比赛相机画面；
+仅当目标球满足 `grasp_ready` 时才继续抓取，否则恢复本体并退出。
 
 ### 运行前处理厂商占用服务
 

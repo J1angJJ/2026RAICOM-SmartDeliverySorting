@@ -13,6 +13,7 @@ from xgo26.actions import (
     align_ball,
     ball_ready_for_grasp,
     close_grasp_claw,
+    grasp_from_body_view,
     grasp_once,
     lower_grasp_arm,
     lower_grasp_body,
@@ -42,6 +43,7 @@ def parse_args() -> argparse.Namespace:
             "body-up",
             "arm-stow",
             "staged",
+            "body-grasp",
             "grasp-once",
             "catch",
         ],
@@ -171,6 +173,9 @@ def main() -> None:
         if args.mode == "grasp-once":
             grasp_once(robot)
             return
+
+        if args.mode == "body-grasp":
+            raise SystemExit(0 if grasp_from_body_view(robot, args.color, config) else 1)
 
         if args.mode == "catch":
             if not args.dry_run:
