@@ -100,6 +100,7 @@ def _follow_to_corner(
     posture = str(route_cfg.get("posture", "view_down"))
     expected_direction = str(route_cfg.get("corner_direction", "right"))
     corner_confidence = float(route_cfg.get("corner_confidence", 0.65))
+    near_corner_y_ratio = float(route_cfg.get("near_corner_y_ratio", 0.60))
     timeout = float(route_cfg.get("corner_timeout", 12.0))
     sample_seconds = float(route_cfg.get("sample_seconds", 0.08))
     max_initial_lost = int(route_cfg.get("max_initial_lost_frames", 5))
@@ -113,6 +114,7 @@ def _follow_to_corner(
     tracker = LineTracker(line_cfg)
     corner_seen = False
     initial_lost = 0
+    last_correction = 0.0
     started = time.monotonic()
     while time.monotonic() - started < timeout:
         frame = reader.read()
@@ -125,6 +127,14 @@ def _follow_to_corner(
         ):
             corner_seen = True
             print(f"[three-segment] latch {corner.summary()}")
+        elif (
+            corner is not None
+            and frame is not None
+            and corner.y >= frame.shape[0] * near_corner_y_ratio
+            and corner.confidence >= corner_confidence
+        ):
+            corner_seen = True
+            print(f"[three-segment] latch near mapped corner {corner.summary()}")
 
         if detection is None:
             motion.stop()
@@ -136,7 +146,20 @@ def _follow_to_corner(
                 raise RuntimeError("到达角点前丢失循迹线")
         else:
             initial_lost = 0
-            motion.drive.wheel_drive(speed, 0)
+            if corner_seen:
+                motion.drive.wheel_drive(speed, 0)
+            else:
+                corrected, last_correction = _correct_heading(
+                    motion,
+                    detection.steering_error,
+                    posture,
+                    route_cfg,
+                    last_correction,
+                )
+                if corrected:
+                    tracker = LineTracker(line_cfg)
+                else:
+                    motion.drive.wheel_drive(speed, 0)
         time.sleep(sample_seconds)
 
     motion.stop()
@@ -161,6 +184,7 @@ def _follow_final_segment(
     time.sleep(blind_seconds)
     tracker = LineTracker(line_cfg)
     lost_frames = 0
+    last_correction = 0.0
     started = time.monotonic()
     while time.monotonic() - started < final_seconds:
         frame = reader.read()
@@ -172,6 +196,17 @@ def _follow_final_segment(
                 break
         else:
             lost_frames = 0
+            corrected, last_correction = _correct_heading(
+                motion,
+                detection.steering_error,
+                posture,
+                route_cfg,
+                last_correction,
+            )
+            if corrected:
+                tracker = LineTracker(line_cfg)
+                time.sleep(sample_seconds)
+                continue
         motion.drive.wheel_drive(speed, 0)
         time.sleep(sample_seconds)
     motion.stop()
@@ -186,6 +221,37 @@ def _forward_pulse(motion: Motion, speed: float, seconds: float, posture: str) -
     finally:
         motion.stop()
         time.sleep(0.15)
+
+
+def _correct_heading(
+    motion: Motion,
+    steering_error: float,
+    posture: str,
+    route_cfg: dict,
+    last_correction: float,
+) -> tuple[bool, float]:
+    threshold = abs(float(route_cfg.get("correction_threshold", 0.08)))
+    interval = max(0.0, float(route_cfg.get("correction_interval", 0.35)))
+    now = time.monotonic()
+    if abs(steering_error) < threshold or now - last_correction < interval:
+        return False, last_correction
+
+    turn_speed = abs(float(route_cfg.get("correction_turn_speed", 20)))
+    seconds = max(0.0, float(route_cfg.get("correction_seconds", 0.25)))
+    yaw = -turn_speed if steering_error > 0 else turn_speed
+    direction = "right" if yaw < 0 else "left"
+    print(
+        f"[three-segment] line correction {direction} "
+        f"steering={steering_error:+.3f} seconds={seconds:.2f}"
+    )
+    motion.stop()
+    motion.drive.gait_drive(0, yaw, posture=posture)
+    try:
+        time.sleep(seconds)
+    finally:
+        motion.stop()
+        time.sleep(0.10)
+    return True, time.monotonic()
 
 
 if __name__ == "__main__":
