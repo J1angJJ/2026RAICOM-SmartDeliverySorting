@@ -63,12 +63,14 @@ class CompetitionDrive:
         forward: float = 0.0,
         yaw: float = 0.0,
         posture: str | None = None,
+        lateral: float = 0.0,
     ) -> None:
-        """保持当前或指定俯仰姿态，组合发送步态前进与转向指令。"""
+        """保持当前或指定俯仰姿态，组合发送步态平移与转向指令。"""
         self._enter_gait_mode(restore_neutral=False)
         if posture is not None:
             self.use_gait_posture(posture)
         self.robot.set_move_x(forward)
+        self.robot.set_move_y(lateral)
         self.robot.turn(yaw)
 
     def stop(self) -> None:

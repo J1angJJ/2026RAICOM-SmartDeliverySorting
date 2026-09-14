@@ -220,6 +220,8 @@ python tools/teleop_keyboard.py --speed 20 --gait-forward 8 --gait-arc-turn 12 -
 ```bash
 python tools/test_gait_adjust.py left --turn-speed 20 --seconds 0.35
 python tools/test_gait_adjust.py right --turn-speed 20 --seconds 0.35
+python tools/test_gait_adjust.py shift-left --lateral-speed 8 --seconds 0.35
+python tools/test_gait_adjust.py shift-right --lateral-speed 8 --seconds 0.35
 ```
 
 实机慢速步态测试中，原地转向量 `8` 和 `12` 没有产生可测航向变化；转向量 `20`、持续 `0.40 s` 时约转过 `5°`。前进弧线可使用较小的转向量，具体位移仍需结合画面逐步标定。

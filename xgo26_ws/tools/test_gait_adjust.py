@@ -16,9 +16,13 @@ from xgo26.robot import Robot
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="低头步态单步微调测试（单次最长 0.5 秒）")
-    parser.add_argument("direction", choices=["left", "right"])
+    parser.add_argument(
+        "direction",
+        choices=["left", "right", "shift-left", "shift-right"],
+    )
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--turn-speed", type=float, default=20.0)
+    parser.add_argument("--lateral-speed", type=float, default=8.0)
     parser.add_argument("--forward", type=float, default=0.0, help="设为正值可测试前进弧线")
     parser.add_argument("--seconds", type=float, default=0.18)
     parser.add_argument("--posture", default="view_down")
@@ -37,12 +41,21 @@ def main() -> None:
         model=robot_cfg.get("model", "auto"),
     )
     drive = CompetitionDrive(robot, robot_cfg.get("drive", {}))
-    yaw = abs(args.turn_speed) if args.direction == "left" else -abs(args.turn_speed)
+    yaw = 0.0
+    lateral = 0.0
+    if args.direction == "left":
+        yaw = abs(args.turn_speed)
+    elif args.direction == "right":
+        yaw = -abs(args.turn_speed)
+    elif args.direction == "shift-left":
+        lateral = abs(args.lateral_speed)
+    else:
+        lateral = -abs(args.lateral_speed)
 
     try:
         robot.initialize_control_mode(robot_cfg.get("control", {}))
         before_yaw = robot.read_yaw()
-        drive.gait_drive(args.forward, yaw, posture=args.posture)
+        drive.gait_drive(args.forward, yaw, posture=args.posture, lateral=lateral)
         time.sleep(args.seconds)
         drive.stop()
         time.sleep(0.25)
