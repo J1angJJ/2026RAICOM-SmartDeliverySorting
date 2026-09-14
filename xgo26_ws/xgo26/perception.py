@@ -215,6 +215,15 @@ def _find_colored_ball_contour(
     threshold: list[int],
     roi_top_ratio: float = 0.0,
 ) -> tuple[Any, tuple[int, int, int]] | None:
+    found = _find_colored_ball_contours(frame, threshold, roi_top_ratio)
+    return found[0] if found else None
+
+
+def _find_colored_ball_contours(
+    frame: Any,
+    threshold: list[int],
+    roi_top_ratio: float = 0.0,
+) -> list[tuple[Any, tuple[int, int, int]]]:
     import cv2
     import numpy as np
 
@@ -230,27 +239,23 @@ def _find_colored_ball_contour(
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return None
-    contour = max(contours, key=cv2.contourArea)
-    (x, y), radius = cv2.minEnclosingCircle(contour)
-    if radius < 5:
-        return None
-    return contour, (int(x), int(y), int(radius))
+    found: list[tuple[Any, tuple[int, int, int]]] = []
+    for contour in sorted(contours, key=cv2.contourArea, reverse=True):
+        (x, y), radius = cv2.minEnclosingCircle(contour)
+        if radius >= 5:
+            found.append((contour, (int(x), int(y), int(radius))))
+    return found
 
 
-def detect_colored_ball(
+def _ball_detection_from_contour(
     frame: Any,
     color: str,
-    threshold: list[int],
-    roi_top_ratio: float = 0.0,
-) -> BallDetection | None:
+    contour: Any,
+    circle: tuple[int, int, int],
+) -> BallDetection:
     import cv2
 
-    found = _find_colored_ball_contour(frame, threshold, roi_top_ratio)
-    if found is None:
-        return None
-    contour, (x, y, radius) = found
+    x, y, radius = circle
     height, width = frame.shape[:2]
     box_x, box_y, box_width, box_height = cv2.boundingRect(contour)
     nx, ny = normalize_center(x, y, width, height)
@@ -270,6 +275,32 @@ def detect_colored_ball(
         area=float(cv2.contourArea(contour)),
         touches_bottom=box_y + box_height >= height - 1,
     )
+
+
+def detect_colored_balls(
+    frame: Any,
+    color: str,
+    threshold: list[int],
+    roi_top_ratio: float = 0.0,
+) -> list[BallDetection]:
+    return [
+        _ball_detection_from_contour(frame, color, contour, circle)
+        for contour, circle in _find_colored_ball_contours(
+            frame,
+            threshold,
+            roi_top_ratio,
+        )
+    ]
+
+
+def detect_colored_ball(
+    frame: Any,
+    color: str,
+    threshold: list[int],
+    roi_top_ratio: float = 0.0,
+) -> BallDetection | None:
+    detections = detect_colored_balls(frame, color, threshold, roi_top_ratio)
+    return detections[0] if detections else None
 
 
 def normalize_center(x: int, y: int, width: int, height: int) -> tuple[float, float]:

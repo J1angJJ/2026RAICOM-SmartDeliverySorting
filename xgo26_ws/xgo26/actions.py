@@ -4,7 +4,12 @@ import time
 
 from .camera import camera_reader_from_config, capture_frame_from_config
 from .motion import Motion
-from .perception import BallDetection, DeliveryTask, detect_colored_ball
+from .perception import (
+    BallDetection,
+    DeliveryTask,
+    detect_colored_ball,
+    detect_colored_balls,
+)
 from .robot import Robot
 
 
@@ -95,6 +100,48 @@ def ball_ready_for_body_down(detection: BallDetection, config: dict) -> bool:
     )
 
 
+def _select_tracked_ball(
+    candidates: list[BallDetection],
+    previous: BallDetection | None,
+    target_x: float,
+    target_top: float,
+    target_width: float,
+    max_x_jump: float,
+    max_top_jump: float,
+    max_width_jump: float,
+) -> BallDetection | None:
+    if not candidates:
+        return None
+    if previous is None:
+        return min(
+            candidates,
+            key=lambda candidate: (
+                0.25 * abs(candidate.box_center_x_normalized - target_x)
+                + 2.0 * abs(candidate.box_top_ratio - target_top)
+                + 4.0 * abs(candidate.box_width_ratio - target_width)
+            ),
+        )
+
+    plausible = [
+        candidate
+        for candidate in candidates
+        if abs(candidate.box_center_x_normalized - previous.box_center_x_normalized)
+        <= max_x_jump
+        and abs(candidate.box_top_ratio - previous.box_top_ratio) <= max_top_jump
+        and abs(candidate.box_width_ratio - previous.box_width_ratio) <= max_width_jump
+    ]
+    if not plausible:
+        return None
+    return min(
+        plausible,
+        key=lambda candidate: (
+            abs(candidate.box_center_x_normalized - previous.box_center_x_normalized)
+            + 0.5 * abs(candidate.box_top_ratio - previous.box_top_ratio)
+            + 0.5 * abs(candidate.box_width_ratio - previous.box_width_ratio)
+        ),
+    )
+
+
 def align_ball_for_body_down(
     robot: Robot,
     motion: Motion,
@@ -107,6 +154,7 @@ def align_ball_for_body_down(
     posture = str(grasp_cfg.get("approach_posture", "view_down"))
     target_x = float(grasp_cfg.get("approach_target_x", -0.17))
     tolerance_x = float(grasp_cfg.get("approach_tolerance_x", 0.08))
+    target_top = float(grasp_cfg.get("approach_target_top_ratio", 0.78))
     target_width = float(grasp_cfg.get("approach_target_width_ratio", 0.14))
     width_tolerance = float(grasp_cfg.get("approach_tolerance_width_ratio", 0.03))
     max_steps = max(1, int(grasp_cfg.get("approach_max_steps", 10)))
@@ -121,8 +169,12 @@ def align_ball_for_body_down(
     backward_speed = abs(float(grasp_cfg.get("approach_backward_speed", 15)))
     backward_seconds = max(0.0, float(grasp_cfg.get("approach_backward_seconds", 0.12)))
     settle_seconds = max(0.0, float(grasp_cfg.get("approach_settle_seconds", 0.25)))
+    max_track_x_jump = abs(float(grasp_cfg.get("approach_max_track_x_jump", 0.3)))
+    max_track_top_jump = abs(float(grasp_cfg.get("approach_max_track_top_jump", 0.2)))
+    max_track_width_jump = abs(float(grasp_cfg.get("approach_max_track_width_jump", 0.1)))
 
     stable_frames = 0
+    previous_detection: BallDetection | None = None
     motion.drive.use_wheel_posture(posture)
     with camera_reader_from_config(
         camera_cfg,
@@ -133,25 +185,49 @@ def align_ball_for_body_down(
     ) as reader:
         for step in range(1, max_steps + 1):
             frame = reader.read()
-            detection = (
-                detect_colored_ball(
+            candidates = (
+                detect_colored_balls(
                     frame,
                     color,
                     threshold,
                     roi_top_ratio=float(grasp_cfg.get("roi_top_ratio", 0.55)),
                 )
                 if frame is not None
-                else None
+                else []
+            )
+            detection = _select_tracked_ball(
+                candidates,
+                previous_detection,
+                target_x,
+                target_top,
+                target_width,
+                max_track_x_jump,
+                max_track_top_jump,
+                max_track_width_jump,
             )
             if detection is None:
                 motion.stop()
-                print("[action] approach ball lost, stop")
+                if candidates and previous_detection is not None:
+                    positions = ", ".join(
+                        f"x={candidate.box_center_x_normalized:.2f}/"
+                        f"top={candidate.box_top_ratio:.2f}/"
+                        f"width={candidate.box_width_ratio:.2f}"
+                        for candidate in candidates[:5]
+                    )
+                    print(
+                        "[action] approach target jumped, stop; "
+                        f"candidates={len(candidates)} [{positions}]"
+                    )
+                else:
+                    print("[action] approach ball lost, stop")
                 return False
+            previous_detection = detection
 
             ready = ball_ready_for_body_down(detection, config)
             print(
                 f"[action] approach step={step}/{max_steps} "
-                f"{detection.summary()} approach_ready={ready}"
+                f"candidates={len(candidates)} {detection.summary()} "
+                f"approach_ready={ready}"
             )
             if ready:
                 stable_frames += 1
