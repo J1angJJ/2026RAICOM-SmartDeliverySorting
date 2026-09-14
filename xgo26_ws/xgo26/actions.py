@@ -142,11 +142,11 @@ def speak_task(task: DeliveryTask, dry_run: bool = False) -> None:
 def grasp_once(robot: Robot) -> None:
     robot.claw(0)
     robot.translation("x", 20)
-    robot.motor(52, -55)
+    robot.motor(52, -65)
     time.sleep(0.5)
     robot.translation("z", 60)
     time.sleep(0.5)
-    robot.motor(53, 80)
+    robot.motor(53, 85)
     robot.attitude("p", 20)
     time.sleep(1.5)
     robot.claw(255)
