@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from xgo26.actions import (
     align_ball,
+    ball_ready_for_body_down,
     ball_ready_for_grasp,
     close_grasp_claw,
     grasp_from_body_view,
@@ -58,9 +59,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def detect_once(color: str, config: dict, save_image: bool) -> bool:
+def detect_once(
+    color: str,
+    config: dict,
+    save_image: bool,
+    readiness: str = "grasp",
+) -> bool:
     camera_cfg = config["camera"]
     grasp_cfg = config.get("grasp", {})
+    prefix = "approach_" if readiness == "approach" else ""
     ok, frame = capture_frame_from_config(
         camera_cfg,
         stream=str(grasp_cfg.get("camera_stream", "lores")),
@@ -82,13 +89,18 @@ def detect_once(color: str, config: dict, save_image: bool) -> bool:
     if detection is None:
         print(f"[ball-test] {color} ball not found")
     else:
-        target_x = float(grasp_cfg.get("target_x", 0.0))
-        target_y = float(grasp_cfg.get("target_y", -0.85))
-        tolerance_x = float(grasp_cfg.get("tolerance_x", 0.15))
-        tolerance_y = float(grasp_cfg.get("tolerance_y", 0.18))
+        target_x = float(grasp_cfg.get(f"{prefix}target_x", 0.0))
+        target_y = float(grasp_cfg.get(f"{prefix}target_y", -0.85))
+        tolerance_x = float(grasp_cfg.get(f"{prefix}tolerance_x", 0.15))
+        tolerance_y = float(grasp_cfg.get(f"{prefix}tolerance_y", 0.18))
         centered = detection.centered(target_x, target_y, tolerance_x, tolerance_y)
-        ready = ball_ready_for_grasp(detection, config)
-        print(f"[ball-test] {detection.summary()} centered={centered} grasp_ready={ready}")
+        if readiness == "approach":
+            ready = ball_ready_for_body_down(detection, config)
+            ready_name = "approach_ready"
+        else:
+            ready = ball_ready_for_grasp(detection, config)
+            ready_name = "grasp_ready"
+        print(f"[ball-test] {detection.summary()} centered={centered} {ready_name}={ready}")
 
     if save_image:
         debug_dir = resolve_path(grasp_cfg.get("debug_dir", "logs/ball_debug"))
@@ -98,8 +110,8 @@ def detect_once(color: str, config: dict, save_image: bool) -> bool:
             frame,
             output,
             detection,
-            target_x=float(grasp_cfg.get("target_x", 0.0)),
-            target_y=float(grasp_cfg.get("target_y", -0.85)),
+            target_x=float(grasp_cfg.get(f"{prefix}target_x", 0.0)),
+            target_y=float(grasp_cfg.get(f"{prefix}target_y", -0.85)),
         )
         print(f"[ball-test] saved {path}")
 
@@ -159,7 +171,12 @@ def main() -> None:
             drive = CompetitionDrive(robot, config["robot"].get("drive", {}))
             try:
                 drive.use_wheel_posture("view_down")
-                detected = detect_once(args.color, config, args.save_image)
+                detected = detect_once(
+                    args.color,
+                    config,
+                    args.save_image,
+                    readiness="approach",
+                )
             finally:
                 drive.stop()
                 drive.use_gait_mode()

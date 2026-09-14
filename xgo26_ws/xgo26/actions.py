@@ -77,6 +77,24 @@ def ball_ready_for_grasp(detection: BallDetection, config: dict) -> bool:
     )
 
 
+def ball_ready_for_body_down(detection: BallDetection, config: dict) -> bool:
+    grasp_cfg = config.get("grasp", {})
+    return detection.ready_for_grasp(
+        target_x=float(grasp_cfg.get("approach_target_x", -0.17)),
+        tolerance_x=float(grasp_cfg.get("approach_tolerance_x", 0.08)),
+        target_top_ratio=float(grasp_cfg.get("approach_target_top_ratio", 0.78)),
+        tolerance_top_ratio=float(
+            grasp_cfg.get("approach_tolerance_top_ratio", 0.06)
+        ),
+        target_width_ratio=float(grasp_cfg.get("approach_target_width_ratio", 0.14)),
+        tolerance_width_ratio=float(
+            grasp_cfg.get("approach_tolerance_width_ratio", 0.03)
+        ),
+        min_width_ratio=float(grasp_cfg.get("approach_min_width_ratio", 0.1)),
+        require_bottom=bool(grasp_cfg.get("approach_require_bottom", True)),
+    )
+
+
 def grasp_from_body_view(robot: Robot, color: str, config: dict) -> bool:
     print(f"[action] lower body and verify {color} ball")
     lower_grasp_body(robot)
