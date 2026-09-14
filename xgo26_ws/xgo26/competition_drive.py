@@ -15,6 +15,7 @@ class CompetitionDrive:
         self.turn_input_max = max(1.0, float(cfg.get("turn_input_max", 80)))
         self.wheel_speed_max = min(1.5, max(0.0, float(cfg.get("wheel_speed_max", 1.2))))
         self.switch_delay = max(0.0, float(cfg.get("switch_delay", 0.12)))
+        self.pitch_limit = min(22.0, max(1.0, float(cfg.get("pitch_limit", 22))))
         self.wheel_postures = cfg.get("wheel_postures", {})
         self._mode = "gait"
         self._posture = "neutral"
@@ -98,7 +99,7 @@ class CompetitionDrive:
     def _apply_posture(self, name: str) -> None:
         config = self.wheel_postures[name]
         height = _clamp(float(config.get("height", 100)), 75, 115)
-        pitch = _clamp(float(config.get("pitch", 0)), -15, 15)
+        pitch = _clamp(float(config.get("pitch", 0)), -self.pitch_limit, self.pitch_limit)
         self._posture = name
         self.robot.translation("z", height)
         self.robot.attitude("p", pitch)

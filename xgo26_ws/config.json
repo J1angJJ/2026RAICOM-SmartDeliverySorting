@@ -12,6 +12,7 @@
       "turn_input_max": 80,
       "wheel_speed_max": 1.2,
       "switch_delay": 0.12,
+      "pitch_limit": 22,
       "wheel_postures": {
         "neutral": {
           "height": 95,
@@ -20,7 +21,7 @@
         },
         "view_down": {
           "height": 95,
-          "pitch": 15,
+          "pitch": 20,
           "settle_seconds": 0.6
         },
         "view_up": {

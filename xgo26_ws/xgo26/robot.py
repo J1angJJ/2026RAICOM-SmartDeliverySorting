@@ -158,6 +158,20 @@ class Robot:
             print(f"[robot] read_yaw failed: {exc}")
             return 0.0
 
+    def read_roll(self) -> float:
+        return self._read_float("read_roll")
+
+    def read_pitch(self) -> float:
+        return self._read_float("read_pitch")
+
+    def read_imu(self) -> list[float]:
+        value = self._read_value("read_imu", [])
+        return [float(item) for item in value] if isinstance(value, list) else []
+
+    def read_motors(self) -> list[float]:
+        value = self._read_value("read_motor", [])
+        return [float(item) for item in value] if isinstance(value, list) else []
+
     def read_battery(self) -> int | None:
         if self.dry_run or self.dog is None:
             return None
@@ -206,3 +220,23 @@ class Robot:
         except Exception as exc:
             print(f"[robot] {name} failed: {exc}")
             return False
+
+    def _read_float(self, name: str) -> float:
+        value = self._read_value(name, 0.0)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _read_value(self, name: str, default: Any) -> Any:
+        if self.dry_run or self.dog is None:
+            return default
+        method = getattr(self.dog, name, None)
+        if method is None:
+            print(f"[robot] skip unsupported reader: {name}")
+            return default
+        try:
+            return method()
+        except Exception as exc:
+            print(f"[robot] {name} failed: {exc}")
+            return default

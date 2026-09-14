@@ -241,11 +241,25 @@ python tools/test_drive_actions.py turn-right --angle 30
 测试低头四轮姿态；该命令不让轮子转动，保持指定秒数后恢复中立步态：
 
 ```bash
-python tools/test_wheel_posture.py --pitch 15 --seconds 5
+python tools/test_wheel_posture.py --pitch 20 --seconds 5
 ```
 
-`view_down` 保持正常机身高度 `95 mm`，使用厂商循迹例程采用的最大前倾角
-`+15°`。三段循迹默认保持该姿态并使用纯四轮前进；切换到步态转弯时自动恢复中立姿态。普通 `move`、`move_by` 和纵向 `yaw_hold_move` 使用中立四轮姿态。参数位于 `robot.drive.wheel_postures`，首次实测时应扶稳机器狗并确认四轮均正常承重。
+`view_down` 保持正常机身高度 `95 mm`，默认前倾 `+20°`。板端 XGOMINI
+版 `xgolib` 的俯仰限幅为 `±22°`，比赛动作层也按该值做最终保护；资料中个别
+`30°/35°` 示例实际会被库裁剪，不作为有效目标。三段循迹默认保持低头姿态并使用
+纯四轮前进；切换到步态转弯时自动恢复中立姿态，再进入轮行时重新应用所选姿态。
+普通 `move`、`move_by` 和纵向 `yaw_hold_move` 使用中立四轮姿态。
+
+只读检查下位机 IMU 和 15 路舵机编码器反馈：
+
+```bash
+python tools/inspect_robot_feedback.py --samples 5 --interval 0.2
+```
+
+运行前仍需停止其他串口控制程序。该工具不初始化控制模式、不改变姿态，但创建
+`xgolib.XGO` 对象时厂商库会发送一次零转速命令。输出中的舵机编号依次为
+`11..43` 四腿 12 个关节和 `51..53` 机械臂 3 个关节。当前协议没有四个轮子的
+编码器或里程反馈接口，不能把舵机角度误当作轮式里程计。
 
 打印 `config.json` 里的示例任务：
 

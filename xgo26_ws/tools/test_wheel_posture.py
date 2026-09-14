@@ -18,7 +18,7 @@ from xgo26.robot import Robot
 def main() -> None:
     parser = argparse.ArgumentParser(description="原地测试四轮机身姿态，不让轮子转动")
     parser.add_argument("--config", default="config.json")
-    parser.add_argument("--pitch", type=float, help="覆盖 view_down 俯仰角，范围 -15 至 15")
+    parser.add_argument("--pitch", type=float, help="覆盖 view_down 俯仰角")
     parser.add_argument("--seconds", type=float, default=5.0, help="姿态保持时间")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -27,8 +27,9 @@ def main() -> None:
     drive_config = deepcopy(config["robot"].get("drive", {}))
     profile = drive_config["wheel_postures"]["view_down"]
     if args.pitch is not None:
-        if not -15 <= args.pitch <= 15:
-            raise SystemExit("pitch 必须在 -15 至 15 之间")
+        pitch_limit = float(drive_config.get("pitch_limit", 22))
+        if not -pitch_limit <= args.pitch <= pitch_limit:
+            raise SystemExit(f"pitch 必须在 {-pitch_limit:g} 至 {pitch_limit:g} 之间")
         profile["pitch"] = args.pitch
 
     robot = Robot(
