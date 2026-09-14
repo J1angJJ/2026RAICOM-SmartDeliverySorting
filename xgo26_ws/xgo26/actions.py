@@ -58,6 +58,18 @@ def detect_ball_once(color: str, config: dict) -> tuple[bool, BallDetection | No
     return True, detect_colored_ball(frame, color, thresholds[color])
 
 
+def ball_ready_for_grasp(detection: BallDetection, config: dict) -> bool:
+    grasp_cfg = config.get("grasp", {})
+    return detection.ready_for_grasp(
+        target_x=float(grasp_cfg.get("target_x", -0.14)),
+        tolerance_x=float(grasp_cfg.get("tolerance_x", 0.15)),
+        target_top_ratio=float(grasp_cfg.get("ready_target_top_ratio", 0.89)),
+        tolerance_top_ratio=float(grasp_cfg.get("ready_tolerance_top_ratio", 0.07)),
+        min_width_ratio=float(grasp_cfg.get("ready_min_width_ratio", 0.16)),
+        require_bottom=bool(grasp_cfg.get("ready_require_bottom", True)),
+    )
+
+
 def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
     thresholds = config["ball_thresholds_lab"]
     if color not in thresholds:
@@ -94,18 +106,24 @@ def align_ball(robot: Robot, motion: Motion, color: str, config: dict) -> bool:
                 continue
 
             print(f"[action] {detection.summary()}")
-            if detection.centered(target_x, target_y, tolerance_x, tolerance_y):
+            if ball_ready_for_grasp(detection, config):
                 return True
 
-            err_x = detection.normalized_x - target_x
-            err_y = detection.normalized_y - target_y
+            err_x = detection.box_center_x_normalized - target_x
             if abs(err_x) >= tolerance_x:
                 seconds = min(max_seconds, max(min_seconds, abs(err_x)))
                 speed = float(grasp_cfg.get("lateral_speed", 10))
                 motion.move("y", speed if err_x < 0 else -speed, seconds)
             else:
-                seconds = min(max_seconds, max(min_seconds, abs(err_y)))
-                if err_y < 0:
+                if detection.touches_bottom:
+                    distance_error = (
+                        detection.box_top_ratio
+                        - float(grasp_cfg.get("ready_target_top_ratio", 0.89))
+                    )
+                else:
+                    distance_error = 1.0
+                seconds = min(max_seconds, max(min_seconds, abs(distance_error)))
+                if distance_error < 0:
                     speed = float(grasp_cfg.get("backward_speed", -10))
                 else:
                     speed = float(grasp_cfg.get("forward_speed", 12))

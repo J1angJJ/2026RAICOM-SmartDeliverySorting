@@ -46,6 +46,24 @@ class BallDetection:
     height: int
     normalized_x: float
     normalized_y: float
+    box_x: int
+    box_y: int
+    box_width: int
+    box_height: int
+    area: float
+    touches_bottom: bool
+
+    @property
+    def box_center_x_normalized(self) -> float:
+        return 2 * (self.box_x + self.box_width / 2) / self.width - 1
+
+    @property
+    def box_top_ratio(self) -> float:
+        return self.box_y / self.height
+
+    @property
+    def box_width_ratio(self) -> float:
+        return self.box_width / self.width
 
     def centered(self, target_x: float, target_y: float, tolerance_x: float, tolerance_y: float) -> bool:
         return (
@@ -53,10 +71,29 @@ class BallDetection:
             and abs(self.normalized_y - target_y) <= tolerance_y
         )
 
+    def ready_for_grasp(
+        self,
+        target_x: float,
+        tolerance_x: float,
+        target_top_ratio: float,
+        tolerance_top_ratio: float,
+        min_width_ratio: float,
+        require_bottom: bool = True,
+    ) -> bool:
+        return (
+            abs(self.box_center_x_normalized - target_x) <= tolerance_x
+            and abs(self.box_top_ratio - target_top_ratio) <= tolerance_top_ratio
+            and self.box_width_ratio >= min_width_ratio
+            and (self.touches_bottom or not require_bottom)
+        )
+
     def summary(self) -> str:
         return (
             f"{self.color} pixel=({self.x},{self.y}) radius={self.radius} "
-            f"norm=({self.normalized_x:.2f},{self.normalized_y:.2f})"
+            f"norm=({self.normalized_x:.2f},{self.normalized_y:.2f}) "
+            f"box=({self.box_x},{self.box_y},{self.box_width},{self.box_height}) "
+            f"box_x={self.box_center_x_normalized:.2f} top={self.box_top_ratio:.2f} "
+            f"width={self.box_width_ratio:.2f} bottom={self.touches_bottom}"
         )
 
 
@@ -162,6 +199,13 @@ def capture_and_vote_expected(
 
 
 def find_colored_ball(frame: Any, threshold: list[int]) -> tuple[int, int, int] | None:
+    found = _find_colored_ball_contour(frame, threshold)
+    return found[1] if found is not None else None
+
+
+def _find_colored_ball_contour(
+    frame: Any, threshold: list[int]
+) -> tuple[Any, tuple[int, int, int]] | None:
     import cv2
     import numpy as np
 
@@ -181,15 +225,18 @@ def find_colored_ball(frame: Any, threshold: list[int]) -> tuple[int, int, int] 
     (x, y), radius = cv2.minEnclosingCircle(contour)
     if radius < 5:
         return None
-    return int(x), int(y), int(radius)
+    return contour, (int(x), int(y), int(radius))
 
 
 def detect_colored_ball(frame: Any, color: str, threshold: list[int]) -> BallDetection | None:
-    found = find_colored_ball(frame, threshold)
+    import cv2
+
+    found = _find_colored_ball_contour(frame, threshold)
     if found is None:
         return None
-    x, y, radius = found
+    contour, (x, y, radius) = found
     height, width = frame.shape[:2]
+    box_x, box_y, box_width, box_height = cv2.boundingRect(contour)
     nx, ny = normalize_center(x, y, width, height)
     return BallDetection(
         color=color,
@@ -200,6 +247,12 @@ def detect_colored_ball(frame: Any, color: str, threshold: list[int]) -> BallDet
         height=height,
         normalized_x=nx,
         normalized_y=ny,
+        box_x=box_x,
+        box_y=box_y,
+        box_width=box_width,
+        box_height=box_height,
+        area=float(cv2.contourArea(contour)),
+        touches_bottom=box_y + box_height >= height - 1,
     )
 
 
@@ -224,6 +277,13 @@ def save_ball_debug_image(
     ty = int((1 - target_y) * height / 2)
     cv2.drawMarker(annotated, (tx, ty), (0, 255, 255), cv2.MARKER_CROSS, 18, 2)
     if detection is not None:
+        cv2.rectangle(
+            annotated,
+            (detection.box_x, detection.box_y),
+            (detection.box_x + detection.box_width - 1, detection.box_y + detection.box_height - 1),
+            (255, 0, 255),
+            2,
+        )
         cv2.circle(annotated, (detection.x, detection.y), detection.radius, (0, 255, 0), 2)
         cv2.circle(annotated, (detection.x, detection.y), 3, (0, 0, 255), -1)
         cv2.line(annotated, (detection.x, detection.y), (tx, ty), (255, 255, 0), 1)

@@ -347,8 +347,9 @@ python tools/test_ball_grasp.py catch --color red
 body-down -> arm-down -> claw-close -> arm-up -> body-up -> arm-stow
 ```
 
-等待回车期间机器人保持当前状态，可观察画面和机构位置。输入 `q` 会关闭程序但不复位
-机器人；若机械臂或本体还在下探状态，通常应继续完成 `arm-up`、`body-up` 后再退出。
+等待回车期间机器人保持当前状态，可观察画面和机构位置；输入 `v` 会抓取一帧并输出
+小球轮廓及 `grasp_ready` 判定，输入 `q` 会关闭程序但不复位机器人。若机械臂或本体
+还在下探状态，通常应继续完成 `arm-up`、`body-up` 后再退出。
 
 以下入口用于孤立检查单个阶段：
 

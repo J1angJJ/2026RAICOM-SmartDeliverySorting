@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from xgo26.actions import (
     align_ball,
+    ball_ready_for_grasp,
     close_grasp_claw,
     grasp_once,
     lower_grasp_arm,
@@ -77,7 +78,8 @@ def detect_once(color: str, config: dict, save_image: bool) -> bool:
         tolerance_x = float(grasp_cfg.get("tolerance_x", 0.15))
         tolerance_y = float(grasp_cfg.get("tolerance_y", 0.18))
         centered = detection.centered(target_x, target_y, tolerance_x, tolerance_y)
-        print(f"[ball-test] {detection.summary()} centered={centered}")
+        ready = ball_ready_for_grasp(detection, config)
+        print(f"[ball-test] {detection.summary()} centered={centered} grasp_ready={ready}")
 
     if save_image:
         debug_dir = resolve_path(grasp_cfg.get("debug_dir", "logs/ball_debug"))
@@ -95,7 +97,7 @@ def detect_once(color: str, config: dict, save_image: bool) -> bool:
     return detection is not None
 
 
-def run_staged_grasp(robot: Robot) -> None:
+def run_staged_grasp(robot: Robot, color: str, config: dict) -> None:
     stages = (
         ("body-down", "本体进入抓取观察姿态", lower_grasp_body),
         ("arm-down", "机械臂张爪并下探", lower_grasp_arm),
@@ -107,10 +109,16 @@ def run_staged_grasp(robot: Robot) -> None:
     print("[ball-test] 单会话分步抓取；等待输入时机器人保持当前状态")
     for name, description, action in stages:
         while True:
-            answer = input(f"[ball-test] 回车执行 {name}：{description}；q 保持当前状态并退出 > ")
+            answer = input(
+                f"[ball-test] 回车执行 {name}：{description}；"
+                "v 检查小球；q 保持当前状态并退出 > "
+            )
             if not answer.strip():
                 action(robot)
                 break
+            if answer.strip().lower() == "v":
+                detect_once(color, config, save_image=False)
+                continue
             if answer.strip().lower() == "q":
                 print("[ball-test] 已退出，未复位机器人")
                 return
@@ -152,7 +160,7 @@ def main() -> None:
             return
 
         if args.mode == "staged":
-            run_staged_grasp(robot)
+            run_staged_grasp(robot, args.color, config)
             return
 
         if args.mode == "grasp-once":

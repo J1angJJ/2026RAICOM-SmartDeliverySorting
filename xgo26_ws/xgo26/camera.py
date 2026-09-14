@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -26,30 +27,35 @@ class CameraServiceClient:
         if stream not in self._sequences:
             raise ValueError(f"unknown camera stream: {stream}")
         query = urlencode({"stream": stream, "after": self._sequences[stream]})
-        with urlopen(f"{self.base_url}/frame.raw?{query}", timeout=self.timeout) as response:
-            raw = response.read()
-            source_width = int(response.headers["X-Frame-Width"])
-            source_height = int(response.headers["X-Frame-Height"])
-            channels = int(response.headers["X-Frame-Channels"])
-            sequence = int(response.headers["X-Frame-Sequence"])
-            self._sequences[stream] = sequence
-            self.last_frame_info = {
-                "stream": stream,
-                "sequence": sequence,
-                "sensor_timestamp_ns": _optional_int(
-                    response.headers.get("X-Sensor-Timestamp-Ns")
-                ),
-                "exposure_time_us": _optional_int(
-                    response.headers.get("X-Exposure-Time-Us")
-                ),
-                "analogue_gain": _optional_float(
-                    response.headers.get("X-Analogue-Gain")
-                ),
-                "colour_gains": _optional_float_list(
-                    response.headers.get("X-Colour-Gains")
-                ),
-                "lux": _optional_float(response.headers.get("X-Lux")),
-            }
+        try:
+            with urlopen(f"{self.base_url}/frame.raw?{query}", timeout=self.timeout) as response:
+                raw = response.read()
+                source_width = int(response.headers["X-Frame-Width"])
+                source_height = int(response.headers["X-Frame-Height"])
+                channels = int(response.headers["X-Frame-Channels"])
+                sequence = int(response.headers["X-Frame-Sequence"])
+                self._sequences[stream] = sequence
+                self.last_frame_info = {
+                    "stream": stream,
+                    "sequence": sequence,
+                    "sensor_timestamp_ns": _optional_int(
+                        response.headers.get("X-Sensor-Timestamp-Ns")
+                    ),
+                    "exposure_time_us": _optional_int(
+                        response.headers.get("X-Exposure-Time-Us")
+                    ),
+                    "analogue_gain": _optional_float(
+                        response.headers.get("X-Analogue-Gain")
+                    ),
+                    "colour_gains": _optional_float_list(
+                        response.headers.get("X-Colour-Gains")
+                    ),
+                    "lux": _optional_float(response.headers.get("X-Lux")),
+                }
+        except HTTPError as exc:
+            if exc.code != 404:
+                raise
+            return self._read_mjpeg_frame(stream, width, height)
         expected = source_width * source_height * channels
         if len(raw) != expected:
             raise RuntimeError(f"camera frame size mismatch: got {len(raw)}, expected {expected}")
@@ -61,6 +67,36 @@ class CameraServiceClient:
 
             image = cv2.resize(image, (int(width), int(height)), interpolation=cv2.INTER_AREA)
         return image
+
+    def _read_mjpeg_frame(
+        self,
+        stream: str,
+        width: int | None,
+        height: int | None,
+    ) -> Any:
+        import cv2
+        import numpy as np
+
+        query = urlencode({"stream": stream})
+        with urlopen(f"{self.base_url}/stream.mjpg?{query}", timeout=self.timeout) as response:
+            data = bytearray()
+            while len(data) < 4 * 1024 * 1024:
+                chunk = response.read(4096)
+                if not chunk:
+                    break
+                data.extend(chunk)
+                start = data.find(b"\xff\xd8")
+                end = data.find(b"\xff\xd9", start + 2) if start >= 0 else -1
+                if start >= 0 and end >= 0:
+                    encoded = np.frombuffer(data[start : end + 2], dtype=np.uint8)
+                    image = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+                    if image is None:
+                        break
+                    if width and height and image.shape[1::-1] != (width, height):
+                        image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
+                    self.last_frame_info = {"stream": stream, "source": "mjpeg"}
+                    return image
+        raise RuntimeError("camera MJPEG stream did not yield a JPEG frame")
 
 
 class CameraReader:
