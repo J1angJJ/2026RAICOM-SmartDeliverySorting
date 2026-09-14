@@ -337,6 +337,7 @@ python tools/test_square_motion.py --timed --forward-seconds 2.3
 python tools/test_ball_grasp.py detect --color red --save-image
 python tools/test_ball_grasp.py align --color red
 python tools/test_ball_grasp.py wheel-view --color red --save-image
+python tools/test_ball_grasp.py align-approach --color red
 python tools/test_ball_grasp.py staged
 python tools/test_ball_grasp.py body-grasp --color red
 python tools/test_ball_grasp.py grasp-once
@@ -380,6 +381,10 @@ python tools/test_ball_grasp.py arm-stow
 退出轮控并恢复中立姿态，用于单独标定低头行进阶段的小球视野。它输出独立的
 `approach_ready`，表示可以停止轮式接近并切换到 `body-down`；该判定不与最终闭爪前
 使用的 `grasp_ready` 混用。
+
+`align-approach` 在低头轮态下进行离散闭环：横向偏差较大时停车并做一次短促低头
+步态转向，方向到位后再用四轮短步前后调整距离；每一步都会停车重拍，丢失目标或
+达到步数上限会立即退出，不会直接执行抓取。
 
 ### 运行前处理厂商占用服务
 

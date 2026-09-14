@@ -95,6 +95,103 @@ def ball_ready_for_body_down(detection: BallDetection, config: dict) -> bool:
     )
 
 
+def align_ball_for_body_down(
+    robot: Robot,
+    motion: Motion,
+    color: str,
+    config: dict,
+) -> bool:
+    grasp_cfg = config.get("grasp", {})
+    threshold = config["ball_thresholds_lab"][color]
+    camera_cfg = config["camera"]
+    posture = str(grasp_cfg.get("approach_posture", "view_down"))
+    target_x = float(grasp_cfg.get("approach_target_x", -0.17))
+    tolerance_x = float(grasp_cfg.get("approach_tolerance_x", 0.08))
+    target_width = float(grasp_cfg.get("approach_target_width_ratio", 0.14))
+    width_tolerance = float(grasp_cfg.get("approach_tolerance_width_ratio", 0.03))
+    max_steps = max(1, int(grasp_cfg.get("approach_max_steps", 10)))
+    stable_required = max(1, int(grasp_cfg.get("approach_stable_frames", 2)))
+    turn_speed = abs(float(grasp_cfg.get("approach_turn_speed", 20)))
+    turn_seconds = max(0.0, float(grasp_cfg.get("approach_turn_seconds", 0.2)))
+    forward_speed = abs(float(grasp_cfg.get("approach_forward_speed", 20)))
+    forward_seconds = max(0.0, float(grasp_cfg.get("approach_forward_seconds", 0.15)))
+    backward_speed = abs(float(grasp_cfg.get("approach_backward_speed", 15)))
+    backward_seconds = max(0.0, float(grasp_cfg.get("approach_backward_seconds", 0.12)))
+    settle_seconds = max(0.0, float(grasp_cfg.get("approach_settle_seconds", 0.25)))
+
+    stable_frames = 0
+    motion.drive.use_wheel_posture(posture)
+    with camera_reader_from_config(
+        camera_cfg,
+        stream=str(grasp_cfg.get("camera_stream", "lores")),
+        width=int(grasp_cfg.get("camera_width", 320)),
+        height=int(grasp_cfg.get("camera_height", 240)),
+        warmup_frames=int(grasp_cfg.get("warmup_frames", 2)),
+    ) as reader:
+        for step in range(1, max_steps + 1):
+            frame = reader.read()
+            detection = (
+                detect_colored_ball(
+                    frame,
+                    color,
+                    threshold,
+                    roi_top_ratio=float(grasp_cfg.get("roi_top_ratio", 0.55)),
+                )
+                if frame is not None
+                else None
+            )
+            if detection is None:
+                motion.stop()
+                print("[action] approach ball lost, stop")
+                return False
+
+            ready = ball_ready_for_body_down(detection, config)
+            print(
+                f"[action] approach step={step}/{max_steps} "
+                f"{detection.summary()} approach_ready={ready}"
+            )
+            if ready:
+                stable_frames += 1
+                motion.stop()
+                if stable_frames >= stable_required:
+                    return True
+                time.sleep(settle_seconds)
+                continue
+            stable_frames = 0
+
+            horizontal_error = detection.box_center_x_normalized - target_x
+            if abs(horizontal_error) > tolerance_x:
+                yaw = -turn_speed if horizontal_error > 0 else turn_speed
+                direction = "right" if yaw < 0 else "left"
+                print(f"[action] approach pulse turn-{direction} {turn_seconds:.2f}s")
+                motion.stop()
+                motion.drive.gait_drive(0, yaw, posture=posture)
+                time.sleep(turn_seconds)
+                motion.stop()
+            elif (
+                not detection.touches_bottom
+                or detection.box_width_ratio < target_width - width_tolerance
+            ):
+                print(f"[action] approach pulse forward {forward_seconds:.2f}s")
+                motion.drive.wheel_drive(forward_speed, 0)
+                time.sleep(forward_seconds)
+                motion.stop()
+            elif detection.box_width_ratio > target_width + width_tolerance:
+                print(f"[action] approach pulse backward {backward_seconds:.2f}s")
+                motion.drive.wheel_drive(-backward_speed, 0)
+                time.sleep(backward_seconds)
+                motion.stop()
+            else:
+                motion.stop()
+                print("[action] approach geometry is outside vertical tolerance")
+                return False
+            time.sleep(settle_seconds)
+
+    motion.stop()
+    print("[action] approach alignment reached step limit")
+    return False
+
+
 def grasp_from_body_view(robot: Robot, color: str, config: dict) -> bool:
     print(f"[action] lower body and verify {color} ball")
     lower_grasp_body(robot)

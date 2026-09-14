@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from xgo26.actions import (
     align_ball,
+    align_ball_for_body_down,
     ball_ready_for_body_down,
     ball_ready_for_grasp,
     close_grasp_claw,
@@ -46,6 +47,7 @@ def parse_args() -> argparse.Namespace:
             "arm-stow",
             "staged",
             "wheel-view",
+            "align-approach",
             "body-grasp",
             "grasp-once",
             "catch",
@@ -182,6 +184,15 @@ def main() -> None:
                 drive.use_gait_mode()
                 robot.stop()
             raise SystemExit(0 if detected else 1)
+
+        if args.mode == "align-approach":
+            try:
+                aligned = align_ball_for_body_down(robot, motion, args.color, config)
+            finally:
+                motion.stop()
+                motion.drive.use_gait_mode()
+                robot.stop()
+            raise SystemExit(0 if aligned else 1)
 
         if args.mode == "align":
             if not args.dry_run:
