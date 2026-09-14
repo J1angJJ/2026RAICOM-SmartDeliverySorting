@@ -236,10 +236,10 @@ python tools/test_drive_actions.py corner-right --angle 90
 三段循迹线和两个连续右直角弯使用一个完整测试入口：
 
 ```bash
-python tools/test_three_segment_route.py
+bash tools/run_three_segment_route.sh
 ```
 
-程序会在识别到右角点并观察到角点从相机下方消失后，执行配置中的短距离补偿，再通过 IMU 完成低头右转90度；这个过程重复两次，最后沿第三段运行并停车。现场参数集中在 `config.json` 的 `three_segment_route`，当前补偿为轮速28、`0.12 s`。运行前必须确认共享相机服务可用，且厂家主菜单和手动控制服务没有占用控制串口。
+包装脚本会临时停用厂家相机、手动控制和主菜单，启动比赛相机后运行路线；成功、报错或按 `Ctrl+C` 时都会停车并恢复厂家服务。如果控制串口仍被其他程序占用则拒绝启动。程序会在识别到右角点并观察到角点从相机下方消失后，执行配置中的短距离补偿，再通过 IMU 完成低头右转90度；这个过程重复两次，最后沿第三段运行并停车。现场参数集中在 `config.json` 的 `three_segment_route`，当前补偿为轮速28、`0.12 s`。
 
 采集器与遥控器可以在两个 SSH 终端同时运行：采集器只读共享相机，遥控器独占控制串口。仓库内新启动的第二个控制程序会因 `/tmp/xgo26-serial-ttyAMA0.lock` 被拒绝，但厂家程序不识别这个锁，因此仍需人工确认 `oumax-manual.service` 已停止。
 
