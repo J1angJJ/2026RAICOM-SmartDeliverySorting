@@ -106,7 +106,8 @@
     "corner_minimum_side_ratio": 0.16,
     "corner_minimum_y_ratio": 0.52,
     "corner_maximum_y_ratio": 0.9,
-    "corner_maximum_height_ratio": 0.14
+    "corner_maximum_height_ratio": 0.14,
+    "corner_trigger_y_ratio": 0.82
   },
   "models": {
     "package_model": "models/package_letter.onnx",

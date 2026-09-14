@@ -55,6 +55,38 @@ class Motion:
             time.sleep(0.08)
         time.sleep(0.3)
 
+    def turn_relative_low(
+        self,
+        angle: float,
+        timeout: float = 8.0,
+        posture: str = "view_down",
+        coarse_speed: float = 40.0,
+        fine_speed: float = 20.0,
+        tolerance: float = 2.0,
+    ) -> None:
+        """保持低头姿态，按 IMU 相对航向完成拐角转向。"""
+        print(f"[motion] low posture relative turn angle={angle:.1f}")
+        if self.robot.dry_run:
+            return
+        origin = self.robot.read_yaw()
+        started = time.time()
+        try:
+            while True:
+                current = _angle_error(self.robot.read_yaw(), origin)
+                error = _angle_error(angle, current)
+                if abs(error) <= abs(tolerance):
+                    break
+                if time.time() - started > timeout:
+                    print(f"[motion] relative turn timeout, error={error:.1f}")
+                    break
+                magnitude = abs(fine_speed) if abs(error) < 15 else abs(coarse_speed)
+                speed = magnitude if error > 0 else -magnitude
+                self.drive.gait_drive(0, speed, posture=posture)
+                time.sleep(0.08)
+        finally:
+            self.drive.stop()
+            time.sleep(0.25)
+
     def run_route(self, name: str, steps: Iterable[dict]) -> None:
         print(f"[motion] route {name}")
         for step in steps:
@@ -79,6 +111,19 @@ class Motion:
                 )
             elif kind == "turn_to":
                 self.turn_to(float(step.get("yaw", 0)), timeout=float(step.get("timeout", 6.0)))
+            elif kind == "corner_turn":
+                direction = str(step.get("direction", "right"))
+                if direction not in {"left", "right"}:
+                    raise ValueError(f"未知拐角方向: {direction}")
+                angle = abs(float(step.get("angle", 90)))
+                self.turn_relative_low(
+                    angle if direction == "left" else -angle,
+                    timeout=float(step.get("timeout", 8.0)),
+                    posture=str(step.get("posture", "view_down")),
+                    coarse_speed=float(step.get("coarse_speed", 40)),
+                    fine_speed=float(step.get("fine_speed", 20)),
+                    tolerance=float(step.get("tolerance", 2)),
+                )
             elif kind == "line_follow":
                 self.follow_line(
                     seconds=float(step.get("seconds", 0)),
@@ -196,6 +241,12 @@ class Motion:
         stop_on_corner = str(config.get("stop_on_corner", ""))
         corner_frames_required = max(1, int(config.get("corner_frames", 3)))
         corner_confidence = float(config.get("corner_confidence", 0.55))
+        corner_trigger_y_ratio = float(
+            config.get(
+                "corner_trigger_y_ratio",
+                line_cfg.get("corner_trigger_y_ratio", 0.82),
+            )
+        )
 
         lost_frames = 0
         corner_frames = 0
@@ -229,6 +280,7 @@ class Motion:
                             and corner is not None
                             and corner.direction == stop_on_corner
                             and corner.confidence >= corner_confidence
+                            and corner.y >= detection.height * corner_trigger_y_ratio
                         ):
                             corner_frames += 1
                             if corner_frames >= corner_frames_required:

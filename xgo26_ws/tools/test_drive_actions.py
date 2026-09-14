@@ -17,7 +17,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="单独测试比赛前进和转向动作")
     parser.add_argument(
         "action",
-        choices=["forward", "backward", "turn-left", "turn-right"],
+        choices=[
+            "forward",
+            "backward",
+            "turn-left",
+            "turn-right",
+            "corner-left",
+            "corner-right",
+        ],
     )
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--speed", type=float, default=8, help="前进/后退速度参数")
@@ -51,8 +58,12 @@ def main() -> None:
             motion.move("x", -abs(args.speed), args.seconds)
         elif args.action == "turn-left":
             motion.turn_to(abs(args.angle))
-        else:
+        elif args.action == "turn-right":
             motion.turn_to(-abs(args.angle))
+        elif args.action == "corner-left":
+            motion.turn_relative_low(abs(args.angle))
+        else:
+            motion.turn_relative_low(-abs(args.angle))
     finally:
         motion.stop()
         motion.drive.use_gait_mode()

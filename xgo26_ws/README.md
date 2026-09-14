@@ -226,6 +226,13 @@ python tools/test_gait_adjust.py shift-right --lateral-speed 8 --seconds 0.35
 
 实机慢速步态测试中，原地转向量 `8` 和 `12` 没有产生可测航向变化；转向量 `20`、持续 `0.40 s` 时约转过 `5°`。前进弧线可使用较小的转向量，具体位移仍需结合画面逐步标定。
 
+直角弯采用两阶段逻辑：循迹阶段只有角点进入图像近场触发区后才停车；随后暂停视觉循迹，由 IMU 闭环执行保持低头的相对转向。单独测试入口如下，运行后会连续完成目标角度，必须先确认周围安全：
+
+```bash
+python tools/test_drive_actions.py corner-left --angle 90
+python tools/test_drive_actions.py corner-right --angle 90
+```
+
 采集器与遥控器可以在两个 SSH 终端同时运行：采集器只读共享相机，遥控器独占控制串口。仓库内新启动的第二个控制程序会因 `/tmp/xgo26-serial-ttyAMA0.lock` 被拒绝，但厂家程序不识别这个锁，因此仍需人工确认 `oumax-manual.service` 已停止。
 
 推荐的运动数据采集顺序：
