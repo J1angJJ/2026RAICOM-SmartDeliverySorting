@@ -9,7 +9,17 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from xgo26.actions import align_ball, grasp_once, prepare_for_grasp
+from xgo26.actions import (
+    align_ball,
+    close_grasp_claw,
+    grasp_once,
+    lower_grasp_arm,
+    lower_grasp_body,
+    prepare_for_grasp,
+    restore_grasp_body,
+    retract_grasp_arm,
+    stow_grasp_arm,
+)
 from xgo26.camera import capture_frame_from_config
 from xgo26.config import load_config, resolve_path
 from xgo26.motion import Motion
@@ -21,8 +31,19 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="分段测试红/蓝球检测、对准和抓取")
     parser.add_argument(
         "mode",
-        choices=["detect", "align", "grasp-once", "catch"],
-        help="detect 只拍照识别；align 只移动对准；grasp-once 只执行夹爪；catch 对准后抓取",
+        choices=[
+            "detect",
+            "align",
+            "body-down",
+            "arm-down",
+            "claw-close",
+            "arm-up",
+            "body-up",
+            "arm-stow",
+            "grasp-once",
+            "catch",
+        ],
+        help="分步调整本体/机械臂，或运行完整对准与抓取流程",
     )
     parser.add_argument("--color", choices=["red", "blue"], default="red")
     parser.add_argument("--config", default="config.json")
@@ -88,24 +109,39 @@ def main() -> None:
         config.get("line_following", {}),
     )
 
-    if args.mode == "align":
-        if not args.dry_run:
-            prepare_for_grasp(robot)
-        raise SystemExit(0 if align_ball(robot, motion, args.color, config) else 1)
+    try:
+        if args.mode == "align":
+            if not args.dry_run:
+                prepare_for_grasp(robot)
+            raise SystemExit(0 if align_ball(robot, motion, args.color, config) else 1)
 
-    if args.mode == "grasp-once":
-        grasp_once(robot)
-        return
+        stages = {
+            "body-down": lower_grasp_body,
+            "arm-down": lower_grasp_arm,
+            "claw-close": close_grasp_claw,
+            "arm-up": retract_grasp_arm,
+            "body-up": restore_grasp_body,
+            "arm-stow": stow_grasp_arm,
+        }
+        if args.mode in stages:
+            stages[args.mode](robot)
+            return
 
-    if args.mode == "catch":
-        if not args.dry_run:
-            prepare_for_grasp(robot)
-        aligned = align_ball(robot, motion, args.color, config)
-        if aligned:
+        if args.mode == "grasp-once":
             grasp_once(robot)
-        else:
-            print("[ball-test] align failed, skip grasp-once")
-        raise SystemExit(0 if aligned else 1)
+            return
+
+        if args.mode == "catch":
+            if not args.dry_run:
+                prepare_for_grasp(robot)
+            aligned = align_ball(robot, motion, args.color, config)
+            if aligned:
+                grasp_once(robot)
+            else:
+                print("[ball-test] align failed, skip grasp-once")
+            raise SystemExit(0 if aligned else 1)
+    finally:
+        robot.close()
 
 
 if __name__ == "__main__":

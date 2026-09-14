@@ -140,6 +140,7 @@ def speak_task(task: DeliveryTask, dry_run: bool = False) -> None:
 
 
 def grasp_once(robot: Robot) -> None:
+    print("[action] grasp once")
     robot.claw(0)
     robot.translation("x", 20)
     robot.motor(52, -40)
@@ -149,13 +150,54 @@ def grasp_once(robot: Robot) -> None:
     robot.motor(53, 85)
     robot.attitude("p", 20)
     time.sleep(1.5)
+    close_grasp_claw(robot)
+    retract_grasp_arm(robot)
+    robot.reset()
+    stow_grasp_arm(robot)
+
+
+def lower_grasp_body(robot: Robot) -> None:
+    print("[action] lower grasp body")
+    robot.translation("x", 20)
+    robot.translation("z", 60)
+    time.sleep(0.5)
+    robot.attitude("p", 20)
+    time.sleep(1.0)
+
+
+def restore_grasp_body(robot: Robot) -> None:
+    print("[action] restore grasp body")
+    robot.attitude("p", 0)
+    robot.translation("z", 95)
+    robot.translation("x", 0)
+    time.sleep(1.0)
+
+
+def lower_grasp_arm(robot: Robot) -> None:
+    print("[action] lower grasp arm")
+    robot.claw(0)
+    robot.motor(52, -40)
+    time.sleep(0.5)
+    robot.motor(53, 85)
+    time.sleep(1.5)
+
+
+def close_grasp_claw(robot: Robot) -> None:
+    print("[action] close grasp claw")
     robot.claw(255)
     time.sleep(2.0)
+
+
+def retract_grasp_arm(robot: Robot) -> None:
+    print("[action] retract grasp arm")
     robot.motor(53, 0)
     time.sleep(0.5)
     robot.motor(52, 0)
     time.sleep(0.5)
-    robot.reset()
+
+
+def stow_grasp_arm(robot: Robot) -> None:
+    print("[action] stow grasp arm")
     robot.claw(255)
     robot.arm(-90, 90)
     robot.arm_mode(1)
