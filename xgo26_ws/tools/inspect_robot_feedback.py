@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import sys
 import time
@@ -82,7 +83,20 @@ def _motor_values(values: list[float]) -> dict[str, float] | dict[str, object]:
 def _imu_values(values: list[float]) -> dict[str, float] | dict[str, object]:
     if len(values) != len(IMU_FIELDS):
         return {"ok": False, "count": len(values), "values": values}
-    return {name: value for name, value in zip(IMU_FIELDS, values)}
+    decoded = {name: value for name, value in zip(IMU_FIELDS, values)}
+    finite = all(math.isfinite(value) for value in values)
+    plausible = (
+        all(abs(decoded[name]) <= 40 for name in IMU_FIELDS[:3])
+        and all(abs(decoded[name]) <= 2500 for name in IMU_FIELDS[3:6])
+        and all(abs(decoded[name]) <= 10 for name in IMU_FIELDS[6:])
+    )
+    if finite and plausible:
+        return {"ok": True, **decoded}
+    return {
+        "ok": False,
+        "reason": "当前固件不兼容 xgolib.read_imu() 批量解析",
+        "values": decoded,
+    }
 
 
 if __name__ == "__main__":

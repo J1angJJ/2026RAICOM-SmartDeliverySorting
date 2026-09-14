@@ -169,8 +169,26 @@ class Robot:
         return [float(item) for item in value] if isinstance(value, list) else []
 
     def read_motors(self) -> list[float]:
-        value = self._read_value("read_motor", [])
-        return [float(item) for item in value] if isinstance(value, list) else []
+        if self.dry_run or self.dog is None:
+            return []
+        method = getattr(self.dog, "read_motor", None)
+        if method is None:
+            return []
+        try:
+            value = method()
+            return [float(item) for item in value] if isinstance(value, list) else []
+        except IndexError:
+            # M-7.0.0b8 returns 16 bytes for this 15-register read. The
+            # bundled xgolib loops over all 16 and indexes past MOTOR_LIMIT.
+            raw = getattr(self.dog, "rx_data", b"")
+            rx_len = int(getattr(self.dog, "rx_LEN", 0))
+            if rx_len >= 23 and len(raw) >= 15:
+                print("[robot] applying M-7.0.0b8 15-motor feedback workaround")
+                return _decode_motor_feedback(raw[:15])
+            return []
+        except Exception as exc:
+            print(f"[robot] read_motor failed: {exc}")
+            return []
 
     def read_battery(self) -> int | None:
         if self.dry_run or self.dog is None:
@@ -240,3 +258,16 @@ class Robot:
         except Exception as exc:
             print(f"[robot] {name} failed: {exc}")
             return default
+
+
+def _decode_motor_feedback(raw: bytes | bytearray) -> list[float]:
+    limits = [
+        *([[-73, 57], [-66, 93], [-31, 31]] * 4),
+        [-65, 65],
+        [-85, 50],
+        [-75, 90],
+    ]
+    return [
+        round(value / 255.0 * (limit[1] - limit[0]) + limit[0], 2)
+        for value, limit in zip(raw, limits)
+    ]

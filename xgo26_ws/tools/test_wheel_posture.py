@@ -44,6 +44,8 @@ def main() -> None:
             f"[posture] view_down height={profile['height']} pitch={profile['pitch']} "
             f"hold={max(0.0, args.seconds):.1f}s"
         )
+        if not args.dry_run:
+            print(f"[posture] imu pitch={robot.read_pitch():.2f} deg")
         time.sleep(max(0.0, args.seconds))
     finally:
         drive.stop()
