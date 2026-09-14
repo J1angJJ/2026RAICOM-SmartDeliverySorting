@@ -160,13 +160,21 @@ def align_ball_for_body_down(
             stable_frames = 0
 
             horizontal_error = detection.box_center_x_normalized - target_x
+            if step == max_steps:
+                motion.stop()
+                print("[action] approach alignment reached step limit")
+                return False
             if abs(horizontal_error) > tolerance_x:
-                yaw = -turn_speed if horizontal_error > 0 else turn_speed
+                yaw = turn_speed if horizontal_error > 0 else -turn_speed
                 direction = "right" if yaw < 0 else "left"
-                print(f"[action] approach pulse turn-{direction} {turn_seconds:.2f}s")
+                pulse_seconds = min(
+                    turn_seconds,
+                    max(0.1, abs(horizontal_error) * 0.8),
+                )
+                print(f"[action] approach pulse turn-{direction} {pulse_seconds:.2f}s")
                 motion.stop()
                 motion.drive.gait_drive(0, yaw, posture=posture)
-                time.sleep(turn_seconds)
+                time.sleep(pulse_seconds)
                 motion.stop()
             elif (
                 not detection.touches_bottom
@@ -187,8 +195,6 @@ def align_ball_for_body_down(
                 return False
             time.sleep(settle_seconds)
 
-    motion.stop()
-    print("[action] approach alignment reached step limit")
     return False
 
 
