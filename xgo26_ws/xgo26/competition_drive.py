@@ -6,7 +6,7 @@ from .robot import Robot
 
 
 class CompetitionDrive:
-    """比赛移动动作层：直线使用轮子，原地转向使用机器狗步态。"""
+    """比赛移动动作层：直线优先使用轮子，转向可按场景选择步态。"""
 
     def __init__(self, robot: Robot, config: dict | None = None):
         cfg = config or {}
@@ -55,8 +55,21 @@ class CompetitionDrive:
 
     def turn(self, speed: float) -> None:
         """使用机器狗原有转向步态，不使用四轮差速原地转向。"""
-        self._enter_gait_mode()
+        self._enter_gait_mode(restore_neutral=True)
         self.robot.turn(speed)
+
+    def gait_drive(
+        self,
+        forward: float = 0.0,
+        yaw: float = 0.0,
+        posture: str | None = None,
+    ) -> None:
+        """保持当前或指定俯仰姿态，组合发送步态前进与转向指令。"""
+        self._enter_gait_mode(restore_neutral=False)
+        if posture is not None:
+            self.use_gait_posture(posture)
+        self.robot.set_move_x(forward)
+        self.robot.turn(yaw)
 
     def stop(self) -> None:
         if self._mode == "wheel":
@@ -66,7 +79,16 @@ class CompetitionDrive:
             self.robot.stop()
 
     def use_gait_mode(self) -> None:
-        self._enter_gait_mode()
+        self._enter_gait_mode(restore_neutral=True)
+
+    def use_gait_posture(self, name: str) -> None:
+        """进入步态模式并保持指定机身姿态，不抬头。"""
+        if name not in self.wheel_postures:
+            raise ValueError(f"未知步态姿态: {name}")
+        self._enter_gait_mode(restore_neutral=False)
+        if self._posture != name:
+            self.robot.stop()
+            self._apply_posture(name)
 
     def use_wheel_posture(self, name: str) -> None:
         """Enter wheel mode and apply a stable body pose without driving the wheels."""
@@ -89,16 +111,17 @@ class CompetitionDrive:
         self._mode = "wheel"
         time.sleep(self.switch_delay)
 
-    def _enter_gait_mode(self) -> None:
-        if self._mode == "gait":
-            return
-        self.robot.wheel_control([128, 128, 128, 128])
-        self.last_wheel_values = [128, 128, 128, 128]
-        self.robot.enable_wheel_control(0)
-        self._mode = "gait"
-        if self._posture != "neutral" and "neutral" in self.wheel_postures:
+    def _enter_gait_mode(self, restore_neutral: bool = True) -> None:
+        switched = self._mode != "gait"
+        if switched:
+            self.robot.wheel_control([128, 128, 128, 128])
+            self.last_wheel_values = [128, 128, 128, 128]
+            self.robot.enable_wheel_control(0)
+            self._mode = "gait"
+        if restore_neutral and self._posture != "neutral" and "neutral" in self.wheel_postures:
             self._apply_posture("neutral")
-        time.sleep(self.switch_delay)
+        if switched:
+            time.sleep(self.switch_delay)
 
     def _apply_posture(self, name: str) -> None:
         config = self.wheel_postures[name]

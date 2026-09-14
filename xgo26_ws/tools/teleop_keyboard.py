@@ -22,8 +22,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--speed", type=float, default=8.0, help="四轮前后速度")
     parser.add_argument("--turn-speed", type=float, default=20.0, help="正常步态转向速度")
-    parser.add_argument("--steer", type=float, default=24.0, help="四轮前进弧线差速量")
-    parser.add_argument("--pivot", type=float, default=28.0, help="四轮原地微转差速量")
+    parser.add_argument("--gait-forward", type=float, default=8.0, help="低头步态弧线前进速度")
+    parser.add_argument("--gait-turn", type=float, default=8.0, help="低头步态微调转向速度")
     parser.add_argument("--rate", type=float, default=10.0, help="指令重复发送频率")
     parser.add_argument("--deadman", type=float, default=0.65, help="停止接收按键后的停车延迟")
     parser.add_argument("--dry-run", action="store_true")
@@ -44,8 +44,8 @@ def main() -> None:
     drive = CompetitionDrive(robot, robot_cfg.get("drive", {}))
     speed = min(abs(args.speed), drive.forward_input_max)
     turn_speed = min(abs(args.turn_speed), drive.turn_input_max)
-    steer = min(abs(args.steer), drive.turn_input_max)
-    pivot = min(abs(args.pivot), drive.turn_input_max)
+    gait_forward = min(abs(args.gait_forward), drive.forward_input_max)
+    gait_turn = min(abs(args.gait_turn), drive.turn_input_max)
     posture = "neutral"
     command: Callable[[], None] | None = None
     command_name = "stop"
@@ -59,7 +59,7 @@ def main() -> None:
     signal.signal(signal.SIGTERM, interrupt_on_disconnect)
 
     print("[teleop] 按住按键才持续运动，松开后自动停车")
-    print("[teleop] W/S=四轮前后  A/D=四轮前进弧线  Q/E=四轮原地微转")
+    print("[teleop] W/S=四轮前后  A/D=低头步态前进弧线  Q/E=低头步态原地微调")
     print("[teleop] J/L=正常步态左转/右转（会先恢复中立姿态）")
     print("[teleop] 1/2/3=抬头/中立/低头  +/-=调速  空格=停车  X=退出")
 
@@ -72,6 +72,9 @@ def main() -> None:
     def wheel_motion(forward: float, yaw: float = 0.0) -> None:
         drive.use_wheel_posture(posture)
         drive.wheel_drive(forward, yaw)
+
+    def gait_motion(forward: float, yaw: float) -> None:
+        drive.gait_drive(forward, yaw, posture=posture)
 
     def show_status() -> None:
         print(
@@ -99,13 +102,13 @@ def main() -> None:
                 elif lower == "s":
                     set_motion("wheel-backward", lambda: wheel_motion(-speed))
                 elif lower == "a":
-                    set_motion("wheel-arc-left", lambda: wheel_motion(speed, steer))
+                    set_motion("gait-arc-left", lambda: gait_motion(gait_forward, gait_turn))
                 elif lower == "d":
-                    set_motion("wheel-arc-right", lambda: wheel_motion(speed, -steer))
+                    set_motion("gait-arc-right", lambda: gait_motion(gait_forward, -gait_turn))
                 elif lower == "q":
-                    set_motion("wheel-pivot-left", lambda: wheel_motion(0, pivot))
+                    set_motion("gait-fine-left", lambda: gait_motion(0, gait_turn))
                 elif lower == "e":
-                    set_motion("wheel-pivot-right", lambda: wheel_motion(0, -pivot))
+                    set_motion("gait-fine-right", lambda: gait_motion(0, -gait_turn))
                 elif lower == "j":
                     set_motion("gait-left", lambda: drive.turn(turn_speed))
                 elif lower == "l":
