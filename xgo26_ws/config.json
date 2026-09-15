@@ -71,6 +71,31 @@
     "height": 972,
     "warmup_frames": 2
   },
+  "lidar": {
+    "enabled": false,
+    "sdk_python_path": "/home/pi/RaspberryPi-CM5/robots/Dog_LM/demos/YDLidar-SDK/build/python",
+    "port": "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0",
+    "fallback_port": "/dev/ttyUSB0",
+    "baudrate": 230400,
+    "sample_rate_khz": 4,
+    "scan_frequency_hz": 10.0,
+    "min_range_m": 0.08,
+    "max_range_m": 8.0,
+    "angle_offset_deg": 0.0,
+    "clockwise_angles": false,
+    "sensor_forward_offset_m": 0.0,
+    "sensor_left_offset_m": 0.0,
+    "front_center_deg": 0.0,
+    "front_half_width_deg": 35.0,
+    "localization_max_range_m": 2.5,
+    "minimum_intensity": 0,
+    "nearest_quantile": 0.3,
+    "surface_depth_window_m": 0.15,
+    "minimum_wall_points": 8,
+    "minimum_wall_span_m": 0.12,
+    "wall_residual_limit_m": 0.035,
+    "maximum_wall_rmse_m": 0.03
+  },
   "line_following": {
     "wheel_posture": "view_down",
     "camera": {

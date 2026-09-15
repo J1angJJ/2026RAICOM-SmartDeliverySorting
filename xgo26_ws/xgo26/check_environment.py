@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import platform
 from pathlib import Path
+import sys
 
 from .config import ROOT, load_config, resolve_path
 
@@ -56,6 +57,26 @@ def main() -> None:
         record(serial.exists(), "serial", str(serial), warn_only=not args.strict)
     else:
         record(True, "serial", "非 Linux 环境跳过")
+
+    lidar = config.get("lidar", {})
+    if lidar.get("enabled", False):
+        sdk_path = str(lidar.get("sdk_python_path", "")).strip()
+        if sdk_path and sdk_path not in sys.path:
+            sys.path.insert(0, sdk_path)
+        record(
+            importlib.util.find_spec("ydlidar") is not None,
+            "import ydlidar",
+            sdk_path or "使用当前 Python 环境",
+        )
+        configured_value = str(lidar.get("port", "")).strip()
+        configured_port = Path(configured_value) if configured_value else None
+        fallback_port = Path(str(lidar.get("fallback_port", "/dev/ttyUSB0")))
+        lidar_port = (
+            configured_port
+            if configured_port is not None and configured_port.exists()
+            else fallback_port
+        )
+        record(lidar_port.exists(), "lidar serial", str(lidar_port))
 
     if failures:
         raise SystemExit(1)
