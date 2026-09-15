@@ -190,7 +190,7 @@ python tools/capture_yolo_images.py --session placement_letters_motion_02 --auto
 
 每个批次包含 `images/`、`frames.jsonl` 和 `session.json`。不要直接在这个原始目录中裁图或覆盖图片；后续从原图生成训练集，并按采集批次划分训练集和验证集。
 
-队员提供 `models/package_letter.pt` 后，可在板端只读相机测试推理，不会执行运动：
+队员提供 `models/package_letter.onnx` 后，可在板端只读相机测试推理，不会执行运动：
 
 ```bash
 python tools/test_yolo.py --frames 10

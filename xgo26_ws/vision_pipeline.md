@@ -22,7 +22,7 @@
 
 ## 硬件边界与总体策略
 
-当前板端是 4 核 Cortex-A76、4GiB 内存的 Raspberry Pi CM5 Lite，没有独立 NPU；相机是 OV5647。实机上未经专门加速的 YOLO26n 已达到十几 FPS，因此第一轮直接通过 Ultralytics 在 CPU 上加载训练得到的 PT 权重，不为追求峰值帧率提前引入 NCNN 转换和两套后处理。模型稳定后可导出 ONNX 对比性能，推理入口无需改变。
+当前板端是 4 核 Cortex-A76、4GiB 内存的 Raspberry Pi CM5 Lite，没有独立 NPU；相机是 OV5647。实机上未经专门加速的 YOLO26n 已达到十几 FPS。当前 `xgovenv` 的 Torch/Torchvision 版本不匹配，因此部署端先使用训练模型导出的 ONNX 和 ONNX Runtime CPU 推理，不为追求峰值帧率提前引入 NCNN。
 
 比赛任务不是五套视觉同时运行。状态机在任一时刻只启用一个主动算法：
 

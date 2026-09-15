@@ -166,7 +166,7 @@
     "final_lost_frames": 4
   },
   "models": {
-    "package_model": "models/package_letter.pt",
+    "package_model": "models/package_letter.onnx",
     "letter_model": "models/ABCD.onnx"
   },
   "detection": {
