@@ -11,11 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from xgo26.config import load_config
-from xgo26.lidar import FrontWallEstimator, YDLidarDevice
+from xgo26.lidar import CubeLandmarkEstimator, YDLidarDevice
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="读取 T-mini Plus 并估计前方平面")
+    parser = argparse.ArgumentParser(description="读取 T-mini Plus 并定位识别区箱体")
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--scans", type=int, default=10)
     parser.add_argument("--interval", type=float, default=0.05)
@@ -27,7 +27,7 @@ def main() -> None:
     if not lidar_config.get("enabled", False):
         raise SystemExit("雷达尚未启用；确认接线和安装方向后设置 lidar.enabled=true")
 
-    estimator = FrontWallEstimator(lidar_config)
+    estimator = CubeLandmarkEstimator(lidar_config)
     valid_count = 0
     with YDLidarDevice(lidar_config) as lidar:
         print(f"[lidar-test] connected port={lidar.port}")
@@ -55,7 +55,7 @@ def main() -> None:
             time.sleep(max(0.0, args.interval))
 
     if valid_count == 0:
-        raise SystemExit("没有得到有效前方平面；请检查端口、安装方向和定位参数")
+        raise SystemExit("没有定位到识别箱体；请检查安装方向、扫描高度和箱体参数")
 
 
 if __name__ == "__main__":

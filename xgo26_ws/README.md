@@ -388,10 +388,11 @@ python tools/test_ball_grasp.py arm-stow
 
 ### 雷达局部定位
 
-YDLIDAR T-mini Plus 暂时只作为识别箱体或围挡的局部几何冗余，不承担全场建图，
-也不替代地面字母和图案视觉。`xgo26/lidar.py` 直接使用厂家 YDLidar SDK，将原始扫描
-转换为与 SDK 解耦的数据结构，并估计前方最近平面的距离、偏航、横向中心、跨度、
-拟合误差和置信度；任务层只应消费 `WallEstimate`，不要依赖 SDK 的 `LaserScan`。
+YDLIDAR T-mini Plus 暂时只把两个 `30x30x30cm` 识别箱体作为局部地标，不依赖位置
+未确定的场地围挡，不承担全场建图，也不替代地面字母和图案视觉。`xgo26/lidar.py`
+直接使用厂家 YDLidar SDK，将原始扫描转换为与 SDK 解耦的数据结构；点云先按空间
+连续性分簇，再用 30cm 正面宽度先验拒绝长围挡和短小杂物。任务层只应消费
+`CubeEstimate`，不要依赖 SDK 的 `LaserScan`。
 
 首次上机前保持 `config.json` 中 `lidar.enabled=false`。确认雷达牢固安装、USB 串口
 及供电正常后，先设置为 `true`，只运行静态读取：
@@ -408,9 +409,14 @@ python tools/test_lidar.py --scans 20 --json
 
 当前 `angle_offset_deg`、`clockwise_angles`、`sensor_forward_offset_m` 和
 `sensor_left_offset_m` 都是未标定值。首次测试应在雷达正前方放置一块平整纸板，确认
-纸板落在 `front_center_deg=0` 附近，再标定角度方向和雷达到机器人中心的安装偏移。
+纸板落在 `front_center_deg=0` 附近，再标定角度方向和雷达到机器人中心的安装偏移；
+还必须确认雷达扫描平面低于 30cm 箱顶并能稳定打到箱体正面。
 这些参数确认前，雷达结果不得触发移动。局部平面估计稳定后，再把
 `robot_distance_m/yaw_deg/confidence` 接入识别区停车微调。
+
+雷达自身不能判断当前看到的是识别区 1 还是识别区 2。状态机先沿循迹拓扑进入对应
+识别区，视觉确认识别素材所在箱体后，才允许使用同一时段的 `CubeEstimate` 修正距离
+和偏航；没有视觉确认时，尺寸相近的其他物体也不得触发控制。
 
 算法内部坐标约定为机器人前方 `+x`、左侧 `+y`；`yaw_deg>0` 表示检测平面的左侧
 距离更远。该符号只有在 `angle_offset_deg` 和 `clockwise_angles` 实机标定后才可信。

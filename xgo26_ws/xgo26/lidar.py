@@ -24,13 +24,13 @@ class LidarScan:
 
 
 @dataclass(frozen=True)
-class WallEstimate:
+class CubeEstimate:
     valid: bool
     sensor_distance_m: float | None
     robot_distance_m: float | None
     yaw_deg: float | None
     lateral_center_m: float | None
-    span_m: float
+    face_width_m: float
     point_count: int
     rmse_m: float | None
     confidence: float
@@ -39,14 +39,14 @@ class WallEstimate:
     def summary(self) -> str:
         if not self.valid:
             return (
-                f"invalid points={self.point_count} span={self.span_m:.3f}m "
+                f"invalid points={self.point_count} face_width={self.face_width_m:.3f}m "
                 f"confidence={self.confidence:.2f} reason={self.reason}"
             )
         return (
             f"distance={self.robot_distance_m:.3f}m "
             f"sensor_distance={self.sensor_distance_m:.3f}m "
             f"yaw={self.yaw_deg:+.2f}deg lateral={self.lateral_center_m:+.3f}m "
-            f"span={self.span_m:.3f}m points={self.point_count} "
+            f"face_width={self.face_width_m:.3f}m points={self.point_count} "
             f"rmse={self.rmse_m:.3f}m confidence={self.confidence:.2f}"
         )
 
@@ -188,13 +188,13 @@ class YDLidarDevice:
         )
 
 
-class FrontWallEstimator:
-    """Estimate a nearby frontal planar target without ROS or global mapping."""
+class CubeLandmarkEstimator:
+    """Locate the finite 30 cm front face of a recognition cube."""
 
     def __init__(self, config: dict[str, Any]):
         self.config = config
 
-    def estimate(self, scan: LidarScan) -> WallEstimate:
+    def estimate(self, scan: LidarScan) -> CubeEstimate:
         center = math.radians(float(self.config.get("front_center_deg", 0.0)))
         half_width = math.radians(float(self.config.get("front_half_width_deg", 35.0)))
         min_range = float(self.config.get("min_range_m", 0.08))
@@ -215,66 +215,99 @@ class FrontWallEstimator:
             if x > 0:
                 points.append((y, x))
 
-        min_points = max(2, int(self.config.get("minimum_wall_points", 8)))
+        min_points = max(2, int(self.config.get("minimum_face_points", 8)))
         if len(points) < min_points:
             return self._invalid(len(points), "前向有效点不足")
 
-        nearest_quantile = _clamp(
-            float(self.config.get("nearest_quantile", 0.3)),
-            0.0,
-            1.0,
+        clusters = _split_point_clusters(
+            points,
+            maximum_gap_m=float(self.config.get("cluster_gap_m", 0.08)),
+            maximum_depth_jump_m=float(
+                self.config.get("cluster_depth_jump_m", 0.12)
+            ),
         )
-        depth_window = max(0.01, float(self.config.get("surface_depth_window_m", 0.15)))
-        nearest_x = _quantile(sorted(x for _, x in points), nearest_quantile)
-        surface = [(y, x) for y, x in points if x <= nearest_x + depth_window]
-        if len(surface) < min_points:
-            return self._invalid(len(surface), "最近表面点不足")
-
         residual_limit = max(
             0.005,
-            float(self.config.get("wall_residual_limit_m", 0.035)),
+            float(self.config.get("face_residual_limit_m", 0.035)),
         )
-        slope, intercept, inliers = _fit_line_ransac(surface, residual_limit)
-        if slope is None or intercept is None or len(inliers) < min_points:
-            return self._invalid(len(inliers), "未找到稳定直线")
+        expected_width = float(self.config.get("cube_face_width_m", 0.30))
+        width_tolerance = float(self.config.get("cube_face_width_tolerance_m", 0.10))
+        minimum_width = max(0.02, expected_width - width_tolerance)
+        maximum_width = expected_width + width_tolerance
+        maximum_rmse = float(self.config.get("maximum_face_rmse_m", 0.03))
+        maximum_yaw = abs(float(self.config.get("maximum_face_yaw_deg", 45.0)))
+        minimum_confidence = float(self.config.get("minimum_cube_confidence", 0.45))
 
-        ys = [y for y, _ in inliers]
-        span = max(ys) - min(ys)
-        minimum_span = float(self.config.get("minimum_wall_span_m", 0.12))
-        residuals = [x - (slope * y + intercept) for y, x in inliers]
-        rmse = math.sqrt(sum(value * value for value in residuals) / len(residuals))
-        maximum_rmse = float(self.config.get("maximum_wall_rmse_m", 0.03))
-        valid = intercept > 0 and span >= minimum_span and rmse <= maximum_rmse
+        candidates: list[CubeEstimate] = []
+        for cluster in clusters:
+            if len(cluster) < min_points:
+                continue
+            slope, intercept, inliers = _fit_line_ransac(cluster, residual_limit)
+            if slope is None or intercept is None or len(inliers) < min_points:
+                continue
+            ys = [y for y, _ in inliers]
+            lateral_span = max(ys) - min(ys)
+            face_width = lateral_span * math.sqrt(1.0 + slope * slope)
+            residuals = [x - (slope * y + intercept) for y, x in inliers]
+            rmse = math.sqrt(sum(value * value for value in residuals) / len(residuals))
+            yaw = math.degrees(math.atan(slope))
+            if not (
+                intercept > 0
+                and minimum_width <= face_width <= maximum_width
+                and rmse <= maximum_rmse
+                and abs(yaw) <= maximum_yaw
+            ):
+                continue
 
-        count_score = min(1.0, len(inliers) / max(min_points * 2, 1))
-        span_score = min(1.0, span / max(minimum_span * 2, 0.01))
-        residual_score = max(0.0, 1.0 - rmse / max(maximum_rmse, 0.001))
-        confidence = 0.4 * count_score + 0.3 * span_score + 0.3 * residual_score
-        sensor_forward_offset = float(self.config.get("sensor_forward_offset_m", 0.0))
-        sensor_left_offset = float(self.config.get("sensor_left_offset_m", 0.0))
-        reason = "" if valid else "直线跨度或拟合误差不满足要求"
-        return WallEstimate(
-            valid=valid,
-            sensor_distance_m=intercept,
-            robot_distance_m=intercept + sensor_forward_offset,
-            yaw_deg=math.degrees(math.atan(slope)),
-            lateral_center_m=sum(ys) / len(ys) + sensor_left_offset,
-            span_m=span,
-            point_count=len(inliers),
-            rmse_m=rmse,
-            confidence=confidence,
-            reason=reason,
-        )
+            count_score = min(1.0, len(inliers) / max(min_points * 2, 1))
+            width_score = max(
+                0.0,
+                1.0 - abs(face_width - expected_width) / max(width_tolerance, 0.01),
+            )
+            residual_score = max(0.0, 1.0 - rmse / max(maximum_rmse, 0.001))
+            lateral_center = sum(ys) / len(ys)
+            center_score = max(0.0, 1.0 - abs(lateral_center) / max(maximum_width, 0.01))
+            confidence = (
+                0.25 * count_score
+                + 0.35 * width_score
+                + 0.25 * residual_score
+                + 0.15 * center_score
+            )
+            sensor_forward_offset = float(
+                self.config.get("sensor_forward_offset_m", 0.0)
+            )
+            sensor_left_offset = float(self.config.get("sensor_left_offset_m", 0.0))
+            candidates.append(
+                CubeEstimate(
+                    valid=confidence >= minimum_confidence,
+                    sensor_distance_m=intercept,
+                    robot_distance_m=intercept + sensor_forward_offset,
+                    yaw_deg=yaw,
+                    lateral_center_m=lateral_center + sensor_left_offset,
+                    face_width_m=face_width,
+                    point_count=len(inliers),
+                    rmse_m=rmse,
+                    confidence=confidence,
+                    reason=(
+                        "" if confidence >= minimum_confidence else "箱体置信度不足"
+                    ),
+                )
+            )
+
+        valid_candidates = [candidate for candidate in candidates if candidate.valid]
+        if not valid_candidates:
+            return self._invalid(len(points), "未找到符合30cm尺寸先验的箱体平面")
+        return max(valid_candidates, key=lambda candidate: candidate.confidence)
 
     @staticmethod
-    def _invalid(point_count: int, reason: str) -> WallEstimate:
-        return WallEstimate(
+    def _invalid(point_count: int, reason: str) -> CubeEstimate:
+        return CubeEstimate(
             valid=False,
             sensor_distance_m=None,
             robot_distance_m=None,
             yaw_deg=None,
             lateral_center_m=None,
-            span_m=0.0,
+            face_width_m=0.0,
             point_count=point_count,
             rmse_m=None,
             confidence=0.0,
@@ -311,6 +344,26 @@ def _fit_line_ransac(
     return slope, intercept, best
 
 
+def _split_point_clusters(
+    points: list[tuple[float, float]],
+    maximum_gap_m: float,
+    maximum_depth_jump_m: float,
+) -> list[list[tuple[float, float]]]:
+    ordered = sorted(points, key=lambda point: math.atan2(point[0], point[1]))
+    if not ordered:
+        return []
+    clusters = [[ordered[0]]]
+    for current in ordered[1:]:
+        previous = clusters[-1][-1]
+        spatial_gap = math.hypot(current[0] - previous[0], current[1] - previous[1])
+        depth_jump = abs(current[1] - previous[1])
+        if spatial_gap > maximum_gap_m or depth_jump > maximum_depth_jump_m:
+            clusters.append([current])
+        else:
+            clusters[-1].append(current)
+    return clusters
+
+
 def _least_squares(points: Iterable[tuple[float, float]]) -> tuple[float, float]:
     values = list(points)
     mean_y = sum(y for y, _ in values) / len(values)
@@ -322,14 +375,5 @@ def _least_squares(points: Iterable[tuple[float, float]]) -> tuple[float, float]
     return slope, mean_x - slope * mean_y
 
 
-def _quantile(sorted_values: list[float], ratio: float) -> float:
-    index = round((len(sorted_values) - 1) * ratio)
-    return sorted_values[index]
-
-
 def _normalize_angle(angle: float) -> float:
     return (angle + math.pi) % (2 * math.pi) - math.pi
-
-
-def _clamp(value: float, low: float, high: float) -> float:
-    return max(low, min(high, value))
