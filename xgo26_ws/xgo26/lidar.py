@@ -195,6 +195,7 @@ class CubeLandmarkEstimator:
         self.config = config
 
     def estimate(self, scan: LidarScan) -> CubeEstimate:
+        scan = filter_self_returns(scan, self.config)
         center = math.radians(float(self.config.get("front_center_deg", 0.0)))
         half_width = math.radians(float(self.config.get("front_half_width_deg", 35.0)))
         min_range = float(self.config.get("min_range_m", 0.08))
@@ -313,6 +314,33 @@ class CubeLandmarkEstimator:
             confidence=0.0,
             reason=reason,
         )
+
+
+def filter_self_returns(scan: LidarScan, config: dict[str, Any]) -> LidarScan:
+    sectors = config.get("self_return_sectors", [])
+    if not sectors:
+        return scan
+    points = tuple(
+        point
+        for point in scan.points
+        if not any(_point_matches_self_sector(point, sector) for sector in sectors)
+    )
+    return LidarScan(
+        points=points,
+        captured_at=scan.captured_at,
+        scan_frequency_hz=scan.scan_frequency_hz,
+    )
+
+
+def _point_matches_self_sector(point: LidarPoint, sector: dict[str, Any]) -> bool:
+    if point.range_m > float(sector["max_range_m"]):
+        return False
+    angle = math.degrees(point.angle_rad)
+    start = float(sector["start_deg"])
+    end = float(sector["end_deg"])
+    if start <= end:
+        return start <= angle <= end
+    return angle >= start or angle <= end
 
 
 def _fit_line_ransac(

@@ -85,10 +85,20 @@
     "scan_frequency_hz": 10.0,
     "min_range_m": 0.08,
     "max_range_m": 8.0,
-    "angle_offset_deg": 0.0,
+    "angle_offset_deg": -90.0,
     "clockwise_angles": false,
-    "sensor_forward_offset_m": 0.0,
+    "sensor_forward_offset_m": -0.29,
     "sensor_left_offset_m": 0.0,
+    "mounting_profile": "rear_top_neutral_arm",
+    "self_return_sectors": [
+      {
+        "start_deg": -105.0,
+        "end_deg": -75.0,
+        "max_range_m": 0.13,
+        "source": "两个静态位置重复观测到的8至10厘米固定近距轮廓"
+      }
+    ],
+    "blind_sectors": [],
     "front_center_deg": 0.0,
     "front_half_width_deg": 50.0,
     "localization_max_range_m": 2.5,

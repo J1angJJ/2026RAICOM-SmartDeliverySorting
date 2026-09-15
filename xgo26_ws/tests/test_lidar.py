@@ -3,7 +3,12 @@ from __future__ import annotations
 import math
 import unittest
 
-from xgo26.lidar import CubeLandmarkEstimator, LidarPoint, LidarScan
+from xgo26.lidar import (
+    CubeLandmarkEstimator,
+    LidarPoint,
+    LidarScan,
+    filter_self_returns,
+)
 
 
 class CubeLandmarkEstimatorTest(unittest.TestCase):
@@ -79,6 +84,28 @@ class CubeLandmarkEstimatorTest(unittest.TestCase):
         )
         self.assertFalse(estimate.valid)
         self.assertIn("30cm", estimate.reason)
+
+    def test_filters_only_near_points_inside_self_sector(self) -> None:
+        scan = LidarScan(
+            (
+                LidarPoint(math.radians(-90), 0.09),
+                LidarPoint(math.radians(-90), 0.30),
+                LidarPoint(math.radians(0), 0.09),
+            ),
+            captured_at=1.0,
+            scan_frequency_hz=10.0,
+        )
+        filtered = filter_self_returns(
+            scan,
+            {
+                "self_return_sectors": [
+                    {"start_deg": -105, "end_deg": -75, "max_range_m": 0.13}
+                ]
+            },
+        )
+        self.assertEqual(len(filtered.points), 2)
+        self.assertIn(LidarPoint(math.radians(-90), 0.30), filtered.points)
+        self.assertIn(LidarPoint(math.radians(0), 0.09), filtered.points)
 
 
 if __name__ == "__main__":
