@@ -166,12 +166,15 @@
     "final_lost_frames": 4
   },
   "models": {
-    "package_model": "models/package_letter.onnx",
+    "package_model": "models/package_letter.pt",
     "letter_model": "models/ABCD.onnx"
   },
   "detection": {
     "confidence": 0.45,
     "iou": 0.45,
+    "image_size": 640,
+    "device": "cpu",
+    "max_detections": 20,
     "frames": 3,
     "camera_stream": "main"
   },

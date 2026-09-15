@@ -7,7 +7,7 @@
 - 树莓派 CM5 官方镜像。
 - 板端优先使用 `/home/pi/RaspberryPi-CM5/xgovenv`。
 - 通过 `xgolib` 控制机器狗运动、机械臂和夹爪。
-- 通过 OpenCV/Picamera2/ONNX Runtime 完成视觉识别。
+- 通过 OpenCV/Picamera2/Ultralytics YOLO 完成视觉识别，必要时使用 ONNX Runtime。
 - 通过固定路线、yaw 闭环和视觉微调完成导航、抓取、投递。
 
 场地先验地图位于 `maps/field_map.json`。它以喷绘布左下角为原点，使用米和右手
@@ -189,6 +189,15 @@ python tools/capture_yolo_images.py --session placement_letters_motion_02 --auto
 ```
 
 每个批次包含 `images/`、`frames.jsonl` 和 `session.json`。不要直接在这个原始目录中裁图或覆盖图片；后续从原图生成训练集，并按采集批次划分训练集和验证集。
+
+队员提供 `models/package_letter.pt` 后，可在板端只读相机测试推理，不会执行运动：
+
+```bash
+python tools/test_yolo.py --frames 10
+```
+
+该入口从共享服务读取完整 `main` BGR 原图，Ultralytics 在内存中完成 YOLO26 的
+letterbox、推理和 NMS，不经过 JPEG，也不会再次占用 Picamera2。
 
 相机默认使用自动曝光和自动白平衡。运动采集时注意终端输出中的 `exposure`，曝光时间超过约 `10000 us` 时容易产生运动模糊。完成现场测光后，可以在 `config.json` 的 `camera.controls` 中关闭自动控制并填写 `exposure_time_us`、`analogue_gain` 和 `colour_gains`，然后重启 `xgo26-camera.service`。锁定参数前必须分别检查场地明暗区域，不能仅凭一张画面决定。
 

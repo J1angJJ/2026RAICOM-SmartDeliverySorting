@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from .camera import camera_reader_from_config
-from .config import ROOT, resolve_path
+from .config import resolve_path
+from .yolo import YoloDetection, YoloDetector
 
 
 RED_PACKAGES = {"clothes", "paper", "toothbrush"}
@@ -113,47 +114,55 @@ def ball_color_for_package(package: str) -> str:
 
 
 class PackageDetector:
-    class_names = {
-        0: "clothes",
-        1: "paper",
-        2: "toothbrush",
-        3: "apple",
-        4: "orange",
-        5: "banana",
-        6: "A",
-        7: "B",
-        8: "C",
-        9: "D",
-    }
-
-    def __init__(self, model_path: str | Path, conf: float = 0.45):
+    def __init__(
+        self,
+        model_path: str | Path,
+        conf: float = 0.45,
+        *,
+        iou: float = 0.45,
+        image_size: int = 640,
+        device: str = "cpu",
+        max_detections: int = 20,
+        detector: YoloDetector | None = None,
+    ):
         self.model_path = resolve_path(model_path)
-        self.conf = conf
-        self.session: Any | None = None
-        self.input_name = ""
-        self.output_names: list[str] = []
-        if self.model_path.exists():
-            import onnxruntime as ort
-
-            options = ort.SessionOptions()
-            options.intra_op_num_threads = 2
-            options.inter_op_num_threads = 1
-            self.session = ort.InferenceSession(
-                str(self.model_path),
-                sess_options=options,
-                providers=["CPUExecutionProvider"],
-            )
-            self.input_name = self.session.get_inputs()[0].name
-            self.output_names = [out.name for out in self.session.get_outputs()]
+        self.detector = detector or YoloDetector(
+            self.model_path,
+            confidence=conf,
+            iou=iou,
+            image_size=image_size,
+            device=device,
+            max_detections=max_detections,
+        )
 
     def available(self) -> bool:
-        return self.session is not None
+        return self.detector.available()
+
+    def detect_objects(self, frame: Any) -> tuple[YoloDetection, ...]:
+        return self.detector.predict(frame).detections
 
     def detect_frame(self, frame: Any) -> DeliveryTask | None:
-        if self.session is None:
+        if not self.available():
             return None
-        # 模型训练后在这里补充正式后处理。当前骨架先保留接口。
-        raise NotImplementedError("package_letter.onnx 后处理待模型类别和输出格式确定后实现")
+        packages: list[tuple[str, float]] = []
+        letters: list[tuple[str, float]] = []
+        for detection in self.detect_objects(frame):
+            name = detection.class_name.strip()
+            canonical_package = name.lower()
+            if canonical_package in RED_PACKAGES | BLUE_PACKAGES:
+                packages.append((canonical_package, detection.confidence))
+            elif name.upper() in {"A", "B", "C", "D"}:
+                letters.append((name.upper(), detection.confidence))
+        if not packages or not letters:
+            return None
+        package, package_confidence = max(packages, key=lambda item: item[1])
+        letter, letter_confidence = max(letters, key=lambda item: item[1])
+        return DeliveryTask(
+            letter=letter,
+            package=package,
+            ball_color=ball_color_for_package(package),
+            confidence=min(package_confidence, letter_confidence),
+        )
 
     def detect_or_expected(self, expected: dict[str, str] | None = None) -> DeliveryTask:
         if expected:
@@ -164,10 +173,10 @@ class PackageDetector:
                 ball_color=ball_color_for_package(package),
             )
 
-        if self.session is None:
+        if not self.available():
             raise RuntimeError(f"包裹模型不存在，且未提供 expected task: {self.model_path}")
 
-        raise NotImplementedError("真实包裹识别待模型完成后接入")
+        raise RuntimeError("真实包裹识别需要传入相机画面")
 
 
 def capture_and_vote_expected(
@@ -177,6 +186,10 @@ def capture_and_vote_expected(
     detector = PackageDetector(
         config["models"]["package_model"],
         conf=float(config["detection"].get("confidence", 0.45)),
+        iou=float(config["detection"].get("iou", 0.45)),
+        image_size=int(config["detection"].get("image_size", 640)),
+        device=str(config["detection"].get("device", "cpu")),
+        max_detections=int(config["detection"].get("max_detections", 20)),
     )
     if expected is not None or not detector.available():
         task = detector.detect_or_expected(expected)
@@ -201,8 +214,14 @@ def capture_and_vote_expected(
                 votes.append(task)
     if not votes:
         raise RuntimeError("多帧识别未得到有效包裹任务")
-    key = Counter((task.letter, task.package, task.ball_color) for task in votes).most_common(1)[0][0]
-    return DeliveryTask(*key)
+    key = Counter((task.letter, task.package) for task in votes).most_common(1)[0][0]
+    matching = [task.confidence for task in votes if (task.letter, task.package) == key]
+    return DeliveryTask(
+        letter=key[0],
+        package=key[1],
+        ball_color=ball_color_for_package(key[1]),
+        confidence=sum(matching) / len(matching),
+    )
 
 
 def find_colored_ball(

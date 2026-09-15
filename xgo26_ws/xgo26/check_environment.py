@@ -50,7 +50,16 @@ def main() -> None:
     except (OSError, KeyError, TypeError, ValueError) as error:
         record(False, "field map", str(error))
 
-    for module in ["cv2", "numpy", "onnxruntime", "xgolib", "xgoedu", "picamera2"]:
+    for module in [
+        "cv2",
+        "numpy",
+        "onnxruntime",
+        "ultralytics",
+        "torch",
+        "xgolib",
+        "xgoedu",
+        "picamera2",
+    ]:
         spec = importlib.util.find_spec(module)
         record(
             spec is not None,
