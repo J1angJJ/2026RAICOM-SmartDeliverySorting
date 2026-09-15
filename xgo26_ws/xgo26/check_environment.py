@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 
 from .config import ROOT, load_config, resolve_path
+from .field_map import load_field_map
 
 
 def main() -> None:
@@ -29,9 +30,25 @@ def main() -> None:
     print(f"root={ROOT}")
     print(f"python={platform.python_version()} {platform.platform()}")
 
-    for rel in ["config.json", "scripts/run_mission.py", "xgo26/mission.py"]:
+    for rel in [
+        "config.json",
+        "maps/field_map.json",
+        "scripts/run_mission.py",
+        "xgo26/mission.py",
+    ]:
         path = ROOT / rel
         record(path.exists(), rel, str(path))
+
+    map_path = config.get("field_map", {}).get("path", "maps/field_map.json")
+    try:
+        field_map = load_field_map(map_path)
+        record(
+            field_map.width == 3.0 and field_map.height == 2.5,
+            "field map",
+            f"{field_map.width:.1f}m x {field_map.height:.1f}m",
+        )
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        record(False, "field map", str(error))
 
     for module in ["cv2", "numpy", "onnxruntime", "xgolib", "xgoedu", "picamera2"]:
         spec = importlib.util.find_spec(module)

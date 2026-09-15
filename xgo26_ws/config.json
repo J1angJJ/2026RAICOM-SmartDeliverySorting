@@ -4,6 +4,10 @@
     "confirm_window": 1.2,
     "countdown_seconds": 3
   },
+  "field_map": {
+    "path": "maps/field_map.json",
+    "localization_enabled": false
+  },
   "robot": {
     "serial_port": "/dev/ttyAMA0",
     "model": "xgomini",

@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "map_id": "raicom_foot_3x2_5m_2026",
+  "frame": {
+    "name": "field",
+    "units": "m",
+    "origin": "bottom_left_of_printed_mat",
+    "x_axis": "right",
+    "y_axis": "up",
+    "yaw_positive": "counterclockwise",
+    "bounds_order": ["min_x", "min_y", "max_x", "max_y"]
+  },
+  "field": {
+    "width": 3.0,
+    "height": 2.5
+  },
+  "source_image": {
+    "path": "../private/睿抗地图文件/足式组-3x2.5m.tif",
+    "canvas_pixels": [8504, 7087],
+    "pixels_per_meter": [2834.6666666667, 2834.8],
+    "pixel_origin": "top_left",
+    "conversion": {
+      "x_m": "pixel_x / 2834.6666666667",
+      "y_m": "2.5 - pixel_y / 2834.8"
+    },
+    "scale_basis": "规则确认喷绘布成品尺寸为3.0m×2.5m；TIFF的72DPI不参与换算"
+  },
+  "line_route": {
+    "kind": "polyline",
+    "width": 0.05045,
+    "points": [
+      [0.18556, 2.048645],
+      [2.545449, 2.048645],
+      [2.545449, 0.449591],
+      [1.589958, 0.449591]
+    ],
+    "source_layers": [24, 25, 26],
+    "traversal": "从左上端点向右，右转向下，再右转向左"
+  },
+  "drop_zone": {
+    "nominal_size": [0.7, 0.5],
+    "bounds": null,
+    "note": "规则给出整体名义尺寸，但母版未提供独立整体边界；控制使用各字母圆形目标",
+    "targets": {
+      "A": {
+        "center": [0.645755, 1.838754],
+        "radius": 0.05062,
+        "source_bounds_pixels": [1687, 1731, 287, 287]
+      },
+      "B": {
+        "center": [0.84719, 1.838754],
+        "radius": 0.05062,
+        "source_bounds_pixels": [2258, 1731, 287, 287]
+      },
+      "C": {
+        "center": [1.04933, 1.838754],
+        "radius": 0.05062,
+        "source_bounds_pixels": [2831, 1731, 287, 287]
+      },
+      "D": {
+        "center": [1.251117, 1.838754],
+        "radius": 0.05062,
+        "source_bounds_pixels": [3403, 1731, 287, 287]
+      }
+    }
+  },
+  "pickup_zone": {
+    "kind": "rectangle",
+    "center": [0.944203, 0.905531],
+    "size": [0.500588, 0.200367],
+    "bounds": [0.693909, 0.805348, 1.194497, 1.005715],
+    "source_bounds_pixels": [1967, 4236, 1419, 568],
+    "source_layer": 8
+  },
+  "recognition_zones": {
+    "recognition_1": {
+      "center": [1.994767, 1.648264],
+      "size": [0.800447, 0.502681],
+      "bounds": [1.594544, 1.396924, 2.394991, 1.899605],
+      "source_bounds_pixels": [4520, 1702, 2269, 1425],
+      "source_layers": [2, 3]
+    },
+    "recognition_2": {
+      "center": [1.994767, 0.851736],
+      "size": [0.800447, 0.502681],
+      "bounds": [1.594544, 0.600395, 2.394991, 1.103076],
+      "source_bounds_pixels": [4520, 3960, 2269, 1425],
+      "source_layers": [4, 5]
+    }
+  },
+  "landmarks": {
+    "recognition_cube_1": {
+      "kind": "cube",
+      "center": [1.994767, 1.648264],
+      "size": [0.3, 0.3, 0.3],
+      "yaw_deg": null,
+      "recognition_zone": "recognition_1",
+      "position_source": "主办方确认位于识别区正中心"
+    },
+    "recognition_cube_2": {
+      "kind": "cube",
+      "center": [1.994767, 0.851736],
+      "size": [0.3, 0.3, 0.3],
+      "yaw_deg": null,
+      "recognition_zone": "recognition_2",
+      "position_source": "主办方确认位于识别区正中心"
+    }
+  },
+  "occupancy": {
+    "known_static_obstacles": [
+      "recognition_cube_1",
+      "recognition_cube_2"
+    ],
+    "excluded_unknown_obstacles": [
+      "perimeter_barrier"
+    ],
+    "floor_features_are_obstacles": false
+  },
+  "uncertainty": {
+    "source_digitization": 0.002,
+    "printed_field_alignment": null,
+    "cube_placement": 0.03,
+    "note": "图层量取误差不代表喷绘和铺设精度；箱体摆放误差为保守占位值，均需在正式场地实测"
+  }
+}
